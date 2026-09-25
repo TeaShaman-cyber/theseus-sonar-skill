@@ -14,14 +14,14 @@ sys.modules[SPEC.name] = VERIFY
 SPEC.loader.exec_module(VERIFY)
 
 
-def write_skill(root: Path, name: str, description: str, body: str = "# Skill\\n\\nDo the thing.") -> Path:
+def write_skill(root: Path, name: str, description: str, body: str = "# Skill\n\nDo the thing.") -> Path:
     root.mkdir(parents=True, exist_ok=True)
     (root / "SKILL.md").write_text(
-        "---\\n"
-        f"name: {name}\\n"
-        f"description: {description}\\n"
-        "---\\n\\n"
-        f"{body}\\n",
+        "---\n"
+        f"name: {name}\n"
+        f"description: {description}\n"
+        "---\n\n"
+        f"{body}\n",
         encoding="utf-8",
     )
     return root
@@ -53,7 +53,7 @@ class SkillValidatorTest(unittest.TestCase):
             root = Path(tmp) / "missing-description"
             root.mkdir()
             (root / "SKILL.md").write_text(
-                "---\\nname: missing-description\\n---\\n\\n# Body\\n",
+                "---\nname: missing-description\n---\n\n# Body\n",
                 encoding="utf-8",
             )
             self.assertIn("description-missing", codes(VERIFY.validate_skill(root)))
@@ -102,7 +102,7 @@ class SkillValidatorTest(unittest.TestCase):
                 Path(tmp) / "broken-fence",
                 "broken-fence",
                 "Use when testing code-fence validation.",
-                "# Skill\\n\\n```text\\nnot closed",
+                "# Skill\n\n```text\nnot closed",
             )
             self.assertIn("code-fence", codes(VERIFY.validate_skill(root)))
 
@@ -112,7 +112,7 @@ class SkillValidatorTest(unittest.TestCase):
                 Path(tmp) / "broken-link",
                 "broken-link",
                 "Use when testing relative-link validation.",
-                "# Skill\\n\\nSee [missing](references/missing.md).",
+                "# Skill\n\nSee [missing](references/missing.md).",
             )
             self.assertIn("broken-link", codes(VERIFY.validate_skill(root)))
 
@@ -122,7 +122,7 @@ class SkillValidatorTest(unittest.TestCase):
                 Path(tmp) / "external-link",
                 "external-link",
                 "Use when testing external-link handling.",
-                "# Skill\\n\\nSee [spec](https://agentskills.io/specification).",
+                "# Skill\n\nSee [spec](https://agentskills.io/specification).",
             )
             self.assertNotIn("broken-link", codes(VERIFY.validate_skill(root)))
 
@@ -132,7 +132,7 @@ class SkillValidatorTest(unittest.TestCase):
                 Path(tmp) / "machine-path",
                 "machine-path",
                 "Use when testing machine-specific path detection.",
-                "# Skill\\n\\nRead /home/example/private.txt.",
+                "# Skill\n\nRead /home/example/private.txt.",
             )
             self.assertIn("machine-path", codes(VERIFY.validate_skill(root)))
 
@@ -142,7 +142,7 @@ class SkillValidatorTest(unittest.TestCase):
                 Path(tmp) / "secret-pattern",
                 "secret-pattern",
                 "Use when testing secret-pattern detection.",
-                "# Skill\\n\\nToken: ghp_abcdefghijklmnopqrstuvwxyz123456",
+                "# Skill\n\nToken: ghp_abcdefghijklmnopqrstuvwxyz123456",
             )
             self.assertIn("secret-pattern", codes(VERIFY.validate_skill(root)))
 
@@ -153,7 +153,7 @@ class SkillValidatorTest(unittest.TestCase):
                 "duplicate-skill",
                 "Use when testing duplicate manifest detection.",
             )
-            (root / "skill.md").write_text("# duplicate\\n", encoding="utf-8")
+            (root / "skill.md").write_text("# duplicate\n", encoding="utf-8")
             self.assertIn("skill-md-count", codes(VERIFY.validate_skill(root)))
 
 
