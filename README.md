@@ -5,7 +5,7 @@ Public implementation and validation repository for a bounded model-facing retri
 Upstream feature request: [openai/codex#48166](https://github.com/openai/codex/issues/48166)  
 Implementation coordination: [#1](https://github.com/TeaShaman-cyber/theseus-sonar-skill/issues/1)
 
-**Status:** BOOTSTRAP / PUBLIC PROTOTYPE / NO UPSTREAM PLUGIN PR YET
+**Status:** PUBLIC PROTOTYPE / IMPLEMENTATION TRACK OPEN / NO UPSTREAM PLUGIN PR YET
 
 ## Purpose
 
@@ -38,6 +38,18 @@ Issue
 ```
 
 The current implementation track is [issue #1](https://github.com/TeaShaman-cyber/theseus-sonar-skill/issues/1).
+
+## Development
+
+Run the canonical local pre-review check from the repository root:
+
+```bash
+tools/dev/check
+```
+
+The check validates the repository contract, runs unit/regression tests, compiles Python verification code, and rejects whitespace errors. It intentionally has no third-party runtime dependencies during this bootstrap phase.
+
+Repository operating rules are in [RULES.md](RULES.md). Contribution mechanics are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Research lineage
 
