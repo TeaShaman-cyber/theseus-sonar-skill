@@ -1,0 +1,23 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+.env
+.env.*
+.cache/
+.tmp/
+tmp/
+dist/
+build/
+.DS_Store
+
+# Private/local evidence must not enter this public repository.
+private/
+.private/
+data/private/
+fixtures/private/
+*.sqlite
+*.sqlite3
