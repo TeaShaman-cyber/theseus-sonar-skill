@@ -12,9 +12,14 @@ REQUIRED = (
     "RULES.md",
     "CONTRIBUTING.md",
     ".gitignore",
+    "docs/qa-strategy.md",
     "tools/dev/check",
     "scripts/verify_repo.py",
+    "scripts/verify_skill.py",
     "tests/test_repo_contract.py",
+    "tests/test_skill_validator.py",
+    "tests/fixtures/skills/reference-good/SKILL.md",
+    "tests/fixtures/skills/reference-good/references/notes.md",
     ".github/workflows/ci.yml",
 )
 
@@ -34,12 +39,15 @@ REQUIRED_README_MARKERS = (
     "openai/codex#48166",
     "issue #1",
     "tools/dev/check",
+    "docs/qa-strategy.md",
+    "scripts/verify_skill.py",
 )
 
 REQUIRED_RULE_MARKERS = (
     "search miss != historical absence",
     "Capability is not permission.",
     "tools/dev/check",
+    "External validators are differential evidence",
 )
 
 

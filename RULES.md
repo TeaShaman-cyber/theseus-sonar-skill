@@ -62,6 +62,10 @@ Routine maintenance that changes no behavior or authority may remain narrower.
 
 `tools/dev/check` is the canonical local pre-review gate.
 
+Keep fast deterministic checks in `tools/dev/check`. Model-based evals, repeated stochastic runs, live link checks, and cross-harness comparisons belong in explicit acceptance/heavy QA paths unless a concrete regression justifies promoting one into the fast gate.
+
+External validators are differential evidence, not repository authority. If two validators disagree, preserve the disagreement and inspect the exact rule rather than voting by tool count.
+
 A successful command or green CI proves only the postconditions encoded by that check. Claims about external tools, upstream behavior, or current remote state require their own observable readback.
 
 Important writes require exact remote readback when an independent read route is available.

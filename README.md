@@ -47,7 +47,15 @@ Run the canonical local pre-review check from the repository root:
 tools/dev/check
 ```
 
-The check validates the repository contract, runs unit/regression tests, compiles Python verification code, and rejects whitespace errors. It intentionally has no third-party runtime dependencies during this bootstrap phase.
+The fast gate is dependency-free and validates the repository contract, exercises the generic Agent Skill validator against a synthetic reference fixture, runs unit/regression tests, compiles Python verification code, and rejects whitespace errors.
+
+Validate any candidate skill directory directly with:
+
+```bash
+python3 scripts/verify_skill.py --strict path/to/skill
+```
+
+The project deliberately separates fast deterministic QA from slower behavioral/model evals. See [Sonar Skill QA Strategy](docs/qa-strategy.md) for the OpenAI, Agent Skills, Superpowers, and external-validator baseline plus the planned trigger/negative-control eval layers.
 
 Repository operating rules are in [RULES.md](RULES.md). Contribution mechanics are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
