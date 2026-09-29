@@ -184,6 +184,12 @@ LIMIT 3
                 with self.assertRaises(ValueError):
                     parse_probe(source)
 
+    def test_final_newline_is_required_to_match_grammar(self) -> None:
+        with self.assertRaisesRegex(ValueError, "end with a newline"):
+            parse_probe(
+                'PROBE SEMANTIC\nTARGET "bounded target"\nMUST "anchor"\nLIMIT 3'
+            )
+
     def test_documented_lark_grammar_is_bounded_and_matches_light_sonar(self) -> None:
         grammar = (ROOT / "sonar" / "sonar_query.lark").read_text(encoding="utf-8")
 
@@ -193,11 +199,12 @@ LIMIT 3
         for clause in ("TARGET", "MUST", "SHOULD", "MUST_NOT", "TIME", "LIMIT"):
             self.assertIn(clause, grammar)
 
-        self.assertNotIn("(NL clause_line)*", grammar)
-        self.assertIn("(NL must_line)? (NL must_line)?", grammar)
-        self.assertIn("(NL should_line)? (NL should_line)?", grammar)
-        self.assertIn("(NL must_not_line)? (NL must_not_line)?", grammar)
-        self.assertIn("(NL time_line)? (NL limit_line)?", grammar)
+        self.assertIn("positive_block:", grammar)
+        self.assertIn("must_not_block:", grammar)
+        self.assertIn('QUOTED: /"[^"\\r\\n]{1,240}"/', grammar)
+        self.assertIn("NL: /\\r?\\n/", grammar)
+        self.assertNotIn("\\\\r", grammar)
+        self.assertNotIn("\\\\n", grammar)
 
 
 if __name__ == "__main__":
