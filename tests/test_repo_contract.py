@@ -34,8 +34,14 @@ class RepoContractTest(unittest.TestCase):
         requirements = (ROOT / "requirements-dev.txt").read_text(encoding="utf-8")
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
 
-        self.assertEqual(requirements.strip(), "lark==1.3.1")
+        self.assertEqual(
+            requirements.splitlines(),
+            ["lark==1.3.1", "hypothesis==6.168.0"],
+        )
         self.assertIn("python -m pip install -r requirements-dev.txt", workflow)
+        self.assertTrue(
+            (ROOT / "tests/test_resolution_boundary_properties.py").is_file()
+        )
 
     def test_readme_preserves_retrieval_boundary(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8")

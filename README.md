@@ -48,7 +48,7 @@ python3 -m pip install -r requirements-dev.txt
 tools/dev/check
 ```
 
-The production/runtime code has no third-party Python dependency in this bootstrap phase. Repository QA additionally uses the pinned development dependency in requirements-dev.txt to compile and differentially test the exact Lark grammar.
+The production/runtime code has no third-party Python dependency in this bootstrap phase. Repository QA additionally uses pinned development dependencies in requirements-dev.txt to compile/differentially test the exact Lark grammar and to run bounded deterministic property tests at the untrusted resolution-receipt boundary.
 
 Repository operating rules are in [RULES.md](RULES.md). Contribution mechanics are in [CONTRIBUTING.md](CONTRIBUTING.md).
 

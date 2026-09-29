@@ -67,6 +67,57 @@ class ResolutionReceipt:
 
 
 _DISCRIMINATING_MODES = frozenset({ProbeMode.FUNCTIONAL, ProbeMode.RELATIONAL})
+_RESOLUTION_KEYS = frozenset(
+    {
+        "authority",
+        "available",
+        "exact_object_found",
+        "readback_verified",
+    }
+)
+
+
+def _validate_resolution_receipt(receipt: ResolutionReceipt) -> None:
+    if not isinstance(receipt.authority, AuthorityLayer):
+        raise ValueError("authority must be an AuthorityLayer")
+    if any(
+        type(value) is not bool
+        for value in (
+            receipt.available,
+            receipt.exact_object_found,
+            receipt.readback_verified,
+        )
+    ):
+        raise ValueError("resolution evidence flags must be bool")
+    if receipt.readback_verified and not receipt.exact_object_found:
+        raise ValueError("readback_verified requires exact_object_found")
+    if receipt.exact_object_found and not receipt.available:
+        raise ValueError("exact_object_found requires available authority")
+
+
+def decode_resolution_receipt(raw: object) -> ResolutionReceipt:
+    if type(raw) is not dict:
+        raise ValueError("resolution receipt must be a JSON object")
+
+    if set(raw) != _RESOLUTION_KEYS:
+        raise ValueError("resolution receipt keys must match the contract exactly")
+
+    authority_raw = raw["authority"]
+    if type(authority_raw) is not str:
+        raise ValueError("authority must be a string enum value")
+    try:
+        authority = AuthorityLayer(authority_raw)
+    except ValueError as exc:
+        raise ValueError("authority is not an allowed AuthorityLayer") from exc
+
+    receipt = ResolutionReceipt(
+        authority=authority,
+        available=raw["available"],
+        exact_object_found=raw["exact_object_found"],
+        readback_verified=raw["readback_verified"],
+    )
+    _validate_resolution_receipt(receipt)
+    return receipt
 
 
 def decide_navigation(
@@ -136,21 +187,7 @@ def decide_navigation(
 
 
 def advance_resolution(receipt: ResolutionReceipt) -> NavigationDecision:
-    if not isinstance(receipt.authority, AuthorityLayer):
-        raise ValueError("authority must be an AuthorityLayer")
-    if any(
-        type(value) is not bool
-        for value in (
-            receipt.available,
-            receipt.exact_object_found,
-            receipt.readback_verified,
-        )
-    ):
-        raise ValueError("resolution evidence flags must be bool")
-    if receipt.readback_verified and not receipt.exact_object_found:
-        raise ValueError("readback_verified requires exact_object_found")
-    if receipt.exact_object_found and not receipt.available:
-        raise ValueError("exact_object_found requires available authority")
+    _validate_resolution_receipt(receipt)
 
     if not receipt.available:
         return NavigationDecision(
