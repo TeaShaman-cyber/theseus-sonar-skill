@@ -35,6 +35,7 @@ is degraded external evidence, never a local PASS.
 The current Wolfram model independently checks the typed Sonar decision guard
 over the presence-state space for STRONG, DRIFT, and CONFLICT evidence across
 LITERAL, SEMANTIC, FUNCTIONAL, and RELATIONAL modes with bounded probe budget.
-It verifies decision totality, READY safety invariants, budget termination, and
-reachability. It does not verify PCA retrieval quality or model-side receipt
+It verifies decision totality, LOCATED safety invariants, budget termination, and
+reachability for the personal_context.search navigation stage. LOCATED is not
+authority resolution or verification. It does not verify PCA retrieval quality or model-side receipt
 classification.
