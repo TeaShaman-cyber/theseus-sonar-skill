@@ -22,6 +22,13 @@ class RepoContractTest(unittest.TestCase):
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         self.assertIn("tools/dev/check", workflow)
 
+    def test_workflow_installs_pinned_dev_requirements(self) -> None:
+        requirements = (ROOT / "requirements-dev.txt").read_text(encoding="utf-8")
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+
+        self.assertEqual(requirements.strip(), "lark==1.3.1")
+        self.assertIn("python -m pip install -r requirements-dev.txt", workflow)
+
     def test_readme_preserves_retrieval_boundary(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("search miss != historical absence", readme)

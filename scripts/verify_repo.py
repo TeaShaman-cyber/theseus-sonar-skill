@@ -12,6 +12,7 @@ REQUIRED = (
     "RULES.md",
     "CONTRIBUTING.md",
     ".gitignore",
+    "requirements-dev.txt",
     "tools/dev/check",
     "scripts/verify_repo.py",
     "tests/test_repo_contract.py",
