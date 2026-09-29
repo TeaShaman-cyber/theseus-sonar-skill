@@ -52,7 +52,7 @@ def _append_bounded(values: list[str], raw_value: str, field: str) -> None:
 
 
 def parse_probe(text: str) -> SonarProbe:
-    if not text.endswith("\\n"):
+    if not text.endswith("\n"):
         raise ValueError("probe must end with a newline")
 
     lines = text.splitlines()
