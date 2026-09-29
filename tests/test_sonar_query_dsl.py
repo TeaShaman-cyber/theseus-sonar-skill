@@ -191,15 +191,24 @@ LIMIT 3
             )
 
     def test_parser_uses_only_grammar_line_separators(self) -> None:
+        lf = chr(10)
+        crlf = chr(13) + chr(10)
+        unicode_separator_char = chr(0x2028)
+
         unicode_separator = parse_probe(
-            'PROBE SEMANTIC\\nTARGET "bounded\\u2028target"\\nMUST "anchor"\\nLIMIT 3\\n'
+            f'PROBE SEMANTIC{lf}TARGET "bounded{unicode_separator_char}target"'
+            f'{lf}MUST "anchor"{lf}LIMIT 3{lf}'
         )
-        crlf = parse_probe(
-            'PROBE SEMANTIC\\r\\nTARGET "bounded target"\\r\\nMUST "anchor"\\r\\nLIMIT 3\\r\\n'
+        crlf_probe = parse_probe(
+            f'PROBE SEMANTIC{crlf}TARGET "bounded target"'
+            f'{crlf}MUST "anchor"{crlf}LIMIT 3{crlf}'
         )
 
-        self.assertEqual(unicode_separator.target, "bounded\\u2028target")
-        self.assertEqual(crlf.limit, 3)
+        self.assertEqual(
+            unicode_separator.target,
+            f"bounded{unicode_separator_char}target",
+        )
+        self.assertEqual(crlf_probe.limit, 3)
 
     def test_documented_lark_grammar_is_bounded_and_matches_light_sonar(self) -> None:
         grammar = (ROOT / "sonar" / "sonar_query.lark").read_text(encoding="utf-8")
