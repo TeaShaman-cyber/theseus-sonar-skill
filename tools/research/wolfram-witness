@@ -1,0 +1,126 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import pathlib
+import re
+import subprocess
+
+
+ROOT = pathlib.Path(__file__).resolve().parents[2]
+WITNESS = ROOT / "QA" / "wolfram" / "sonar-decision.wl"
+
+
+def parse_wolfram_payload(raw: str):
+    for line in raw.splitlines():
+        match = re.match(r"^\s*Out\[\d+\]\s*=\s*(.+?)\s*$", line)
+        if not match:
+            continue
+        try:
+            value = json.loads(match.group(1))
+            if isinstance(value, str):
+                value = json.loads(value)
+            if isinstance(value, dict):
+                return value
+        except Exception:
+            pass
+
+    match = re.search(r'\{\s*".*?"\}', raw, re.S)
+    if match:
+        try:
+            value = json.loads(match.group(0))
+            if isinstance(value, dict):
+                return value
+        except Exception:
+            pass
+    return None
+
+
+def run_process(command):
+    try:
+        return subprocess.run(command, text=True, capture_output=True)
+    except (FileNotFoundError, PermissionError, OSError) as exc:
+        return subprocess.CompletedProcess(
+            command,
+            127,
+            "",
+            f"{type(exc).__name__}: {exc}",
+        )
+
+
+def classify(returncode: int, payload) -> str:
+    if returncode != 0 or not isinstance(payload, dict):
+        return "DEGRADED_EXTERNAL_WITNESS"
+    if payload.get("pass") is True:
+        return "VERIFIED"
+    if payload.get("pass") is False:
+        return "FAIL_ASSERTION"
+    return "DEGRADED_EXTERNAL_WITNESS"
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--out", type=pathlib.Path, required=True)
+    parser.add_argument(
+        "--mcporter",
+        default="/workspace/tools/mcporter/bin/mcporter",
+    )
+    args = parser.parse_args()
+
+    if not WITNESS.is_file():
+        raise SystemExit(f"missing Wolfram witness: {WITNESS}")
+
+    proc = run_process(
+        [
+            args.mcporter,
+            "call",
+            "wolfram.WolframLanguageEvaluator",
+            f"code=@{WITNESS}",
+            "timeConstraint=60",
+        ]
+    )
+    raw = (proc.stdout + "\n" + proc.stderr).strip()
+    payload = parse_wolfram_payload(raw)
+    status = classify(proc.returncode, payload)
+
+    version_proc = run_process([args.mcporter, "--version"])
+    version = (
+        version_proc.stdout.strip()
+        if version_proc.returncode == 0
+        else "UNAVAILABLE"
+    )
+
+    receipt = {
+        "schema": "theseus.sonar-wolfram-witness.v1",
+        "witness_sha256": hashlib.sha256(WITNESS.read_bytes()).hexdigest(),
+        "mcporter_version": version,
+        "transport": {
+            "client": "mcporter",
+            "server": "wolfram",
+            "tool": "WolframLanguageEvaluator",
+            "command_shape": "code=@file",
+            "returncode": proc.returncode,
+        },
+        "status": status,
+        "payload": payload,
+        "raw_excerpt": raw[:2000],
+    }
+
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text(
+        json.dumps(receipt, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+    print(json.dumps(receipt, sort_keys=True, separators=(",", ":")))
+    return {
+        "VERIFIED": 0,
+        "FAIL_ASSERTION": 1,
+        "DEGRADED_EXTERNAL_WITNESS": 2,
+    }[status]
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
