@@ -55,7 +55,11 @@ def parse_probe(text: str) -> SonarProbe:
     if not text.endswith("\n"):
         raise ValueError("probe must end with a newline")
 
-    lines = text.splitlines()
+    normalized = text.replace("\r\n", "\n")
+    if "\r" in normalized:
+        raise ValueError("bare carriage returns are not allowed")
+
+    lines = normalized[:-1].split("\n")
     if not lines:
         raise ValueError("PROBE mode is required")
     if any(not line for line in lines):
