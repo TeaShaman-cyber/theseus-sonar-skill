@@ -32,8 +32,9 @@ The external witness is not part of `tools/dev/check`; network/provider
 availability must not make deterministic repository QA flaky. A missing witness
 is degraded external evidence, never a local PASS.
 
-The current Wolfram model independently checks the typed Sonar decision guard
-over the presence-state space for STRONG, DRIFT, and CONFLICT evidence across
+The witness exports the actual Python navigation behavior as a compact exhaustive
+16,384-state decision table, then Wolfram independently checks that table against
+the typed Sonar navigation invariants over the presence-state space for STRONG, DRIFT, and CONFLICT evidence across
 LITERAL, SEMANTIC, FUNCTIONAL, and RELATIONAL modes with bounded probe budget.
 It verifies decision totality, LOCATED safety invariants, budget termination, and
 reachability for the personal_context.search navigation stage. LOCATED is not

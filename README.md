@@ -41,13 +41,14 @@ The current implementation track is [issue #1](https://github.com/TeaShaman-cybe
 
 ## Development
 
-Run the canonical local pre-review check from the repository root:
+Install the pinned development-only dependencies, then run the canonical local pre-review check from the repository root:
 
 ```bash
+python3 -m pip install -r requirements-dev.txt
 tools/dev/check
 ```
 
-The check validates the repository contract, runs unit/regression tests, compiles Python verification code, and rejects whitespace errors. It intentionally has no third-party runtime dependencies during this bootstrap phase.
+The production/runtime code has no third-party Python dependency in this bootstrap phase. Repository QA additionally uses the pinned development dependency in requirements-dev.txt to compile and differentially test the exact Lark grammar.
 
 Repository operating rules are in [RULES.md](RULES.md). Contribution mechanics are in [CONTRIBUTING.md](CONTRIBUTING.md).
 

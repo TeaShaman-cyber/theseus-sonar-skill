@@ -1,102 +1,121 @@
-modes = {"LITERAL", "SEMANTIC", "FUNCTIONAL", "RELATIONAL"};
-modeStates = Tuples[{False, True}, 3];
-budgets = Range[0, 3];
+pythonOutcomes = "__PYTHON_OUTCOMES__";
+pythonTableSHA256 = "__PYTHON_TABLE_SHA256__";
+decisionSourceSHA256 = "__DECISION_SOURCE_SHA256__";
 
-(* Each per-mode state is {hasStrong, hasDrift, hasConflict}.
-   This is the exact information the Python policy uses after receipt
-   multiplicity is collapsed by presence/set semantics. *)
-states = Flatten[
-  Table[
-    {AssociationThread[modes -> state], budget},
-    {state, Tuples[modeStates, Length[modes]]},
-    {budget, budgets}
-  ],
-  1
-];
+stateCount = 16384;
+stateBitsCount = 4096;
 
-decide[{observed_, budget_}] := Module[
-  {values, hasConflict, hasDrift, strongModes, hasDiscriminatingStrong},
-  values = Values[observed];
-  hasConflict = AnyTrue[values, #[[3]] === True &];
-  hasDrift = AnyTrue[values, #[[2]] === True &];
+hasStrong[stateBits_, mode_] :=
+  BitAnd[BitShiftRight[stateBits, 3 mode], 1] === 1;
+hasDrift[stateBits_, mode_] :=
+  BitAnd[BitShiftRight[stateBits, 3 mode + 1], 1] === 1;
+hasConflict[stateBits_, mode_] :=
+  BitAnd[BitShiftRight[stateBits, 3 mode + 2], 1] === 1;
 
-  If[hasConflict,
-    Return[If[budget > 0, "PROBE", "UNKNOWN"]]
+expectedCode[stateBits_, budget_] := Module[
+  {modes, conflict, drift, strongCount, discriminatingStrong},
+  modes = Range[0, 3];
+  conflict = AnyTrue[modes, hasConflict[stateBits, #] &];
+  drift = AnyTrue[modes, hasDrift[stateBits, #] &];
+
+  If[conflict || drift,
+    Return[If[budget > 0, "P", "U"]]
   ];
 
-  If[hasDrift,
-    Return[If[budget > 0, "PROBE", "UNKNOWN"]]
+  strongCount = Count[modes, mode_ /; hasStrong[stateBits, mode]];
+  discriminatingStrong =
+    hasStrong[stateBits, 2] || hasStrong[stateBits, 3];
+
+  If[strongCount >= 2 && discriminatingStrong, Return["L"]];
+  If[budget > 0, "P", "U"]
+];
+
+expectedOutcomes = StringJoin @ Flatten @ Table[
+  expectedCode[stateBits, budget],
+  {budget, 0, 3},
+  {stateBits, 0, stateBitsCount - 1}
+];
+
+actualCode[stateBits_, budget_] :=
+  StringTake[
+    pythonOutcomes,
+    {budget stateBitsCount + stateBits + 1}
   ];
 
-  strongModes = Keys @ Select[observed, #[[1]] === True &];
-  hasDiscriminatingStrong =
-    Length[Intersection[strongModes, {"FUNCTIONAL", "RELATIONAL"}]] > 0;
-
-  If[Length[strongModes] >= 2 && hasDiscriminatingStrong,
-    Return["LOCATED"]
-  ];
-
-  If[budget > 0, "PROBE", "UNKNOWN"]
+implementationMatch = pythonOutcomes === expectedOutcomes;
+mismatchCount = Count[
+  MapThread[Unequal, {Characters[pythonOutcomes], Characters[expectedOutcomes]}],
+  True
 ];
 
-totalDecisionFunctionQ =
-  AllTrue[states, MemberQ[{"LOCATED", "PROBE", "UNKNOWN"}, decide[#]] &];
+hasAnyConflict[stateBits_] :=
+  AnyTrue[Range[0, 3], hasConflict[stateBits, #] &];
+hasAnyDrift[stateBits_] :=
+  AnyTrue[Range[0, 3], hasDrift[stateBits, #] &];
 
-unsafeConflictReadyCount = Count[
-  states,
-  state_ /;
-    AnyTrue[Values[state[[1]]], #[[3]] === True &] &&
-    decide[state] === "LOCATED"
+strongModes[stateBits_] :=
+  Select[Range[0, 3], hasStrong[stateBits, #] &];
+
+allStates = Flatten @ Table[
+  {stateBits, budget},
+  {budget, 0, 3},
+  {stateBits, 0, stateBitsCount - 1}
 ];
 
-unsafeDriftReadyCount = Count[
-  states,
-  state_ /;
-    AnyTrue[Values[state[[1]]], #[[2]] === True &] &&
-    decide[state] === "LOCATED"
+unsafeConflictLocatedCount = Count[
+  allStates,
+  {stateBits_, budget_} /;
+    hasAnyConflict[stateBits] && actualCode[stateBits, budget] === "L"
 ];
 
-readyWithoutIndependentStrongCount = Count[
-  states,
-  state_ /; Module[{strongModes},
-    If[decide[state] =!= "LOCATED", Return[False]];
-    strongModes = Keys @ Select[state[[1]], #[[1]] === True &];
-    Length[strongModes] < 2
-  ]
+unsafeDriftLocatedCount = Count[
+  allStates,
+  {stateBits_, budget_} /;
+    hasAnyDrift[stateBits] && actualCode[stateBits, budget] === "L"
 ];
 
-readyWithoutDiscriminatingStrongCount = Count[
-  states,
-  state_ /; Module[{strongModes},
-    If[decide[state] =!= "LOCATED", Return[False]];
-    strongModes = Keys @ Select[state[[1]], #[[1]] === True &];
-    Intersection[strongModes, {"FUNCTIONAL", "RELATIONAL"}] === {}
-  ]
+locatedWithoutIndependentStrongCount = Count[
+  allStates,
+  {stateBits_, budget_} /;
+    actualCode[stateBits, budget] === "L" &&
+    Length[strongModes[stateBits]] < 2
+];
+
+locatedWithoutDiscriminatingStrongCount = Count[
+  allStates,
+  {stateBits_, budget_} /;
+    actualCode[stateBits, budget] === "L" &&
+    Intersection[strongModes[stateBits], {2, 3}] === {}
 ];
 
 probeAtZeroBudgetCount = Count[
-  states,
-  state_ /; state[[2]] === 0 && decide[state] === "PROBE"
+  Range[0, stateBitsCount - 1],
+  stateBits_ /; actualCode[stateBits, 0] === "P"
 ];
 
 payload = <|
-  "state_count" -> Length[states],
-  "total_decision_function" -> totalDecisionFunctionQ,
-  "unsafe_conflict_located" -> unsafeConflictReadyCount,
-  "unsafe_drift_located" -> unsafeDriftReadyCount,
-  "located_without_independent_strong" -> readyWithoutIndependentStrongCount,
-  "located_without_discriminating_strong" -> readyWithoutDiscriminatingStrongCount,
+  "state_count" -> StringLength[pythonOutcomes],
+  "implementation_match" -> implementationMatch,
+  "mismatch_count" -> mismatchCount,
+  "unsafe_conflict_located" -> unsafeConflictLocatedCount,
+  "unsafe_drift_located" -> unsafeDriftLocatedCount,
+  "located_without_independent_strong" -> locatedWithoutIndependentStrongCount,
+  "located_without_discriminating_strong" ->
+    locatedWithoutDiscriminatingStrongCount,
   "probe_at_zero" -> probeAtZeroBudgetCount,
-  "located_reachable" -> AnyTrue[states, decide[#] === "LOCATED" &],
-  "probe_reachable" -> AnyTrue[states, decide[#] === "PROBE" &],
-  "unknown_reachable" -> AnyTrue[states, decide[#] === "UNKNOWN" &]
+  "located_reachable" -> StringContainsQ[pythonOutcomes, "L"],
+  "probe_reachable" -> StringContainsQ[pythonOutcomes, "P"],
+  "unknown_reachable" -> StringContainsQ[pythonOutcomes, "U"],
+  "python_table_sha256" -> pythonTableSHA256,
+  "decision_source_sha256" -> decisionSourceSHA256
 |>;
 
 payload = Append[
   payload,
   "pass" -> (
-    payload["state_count"] === 16384 &&
-    payload["total_decision_function"] === True &&
+    payload["state_count"] === stateCount &&
+    payload["implementation_match"] === True &&
+    payload["mismatch_count"] === 0 &&
     payload["unsafe_conflict_located"] === 0 &&
     payload["unsafe_drift_located"] === 0 &&
     payload["located_without_independent_strong"] === 0 &&

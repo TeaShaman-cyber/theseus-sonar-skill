@@ -22,6 +22,14 @@ class RepoContractTest(unittest.TestCase):
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
         self.assertIn("tools/dev/check", workflow)
 
+    def test_local_docs_install_dev_requirements_before_canonical_check(self) -> None:
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        contributing = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
+
+        for document in (readme, contributing):
+            self.assertIn("requirements-dev.txt", document)
+            self.assertIn("tools/dev/check", document)
+
     def test_workflow_installs_pinned_dev_requirements(self) -> None:
         requirements = (ROOT / "requirements-dev.txt").read_text(encoding="utf-8")
         workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")

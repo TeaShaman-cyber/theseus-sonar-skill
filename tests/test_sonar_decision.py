@@ -132,6 +132,28 @@ class SonarDecisionTest(unittest.TestCase):
         self.assertEqual(decision.state, NavigationState.DEGRADED)
         self.assertEqual(decision.next_action, NextAction.NONE)
 
+    def test_non_enum_authority_cannot_cross_resolution_boundary(self) -> None:
+        receipt = ResolutionReceipt(
+            authority="personal_context.search",  # type: ignore[arg-type]
+            available=True,
+            exact_object_found=True,
+            readback_verified=True,
+        )
+
+        with self.assertRaisesRegex(ValueError, "authority"):
+            advance_resolution(receipt)
+
+    def test_allowed_authority_string_is_still_rejected_without_enum_identity(self) -> None:
+        receipt = ResolutionReceipt(
+            authority="GITHUB",  # type: ignore[arg-type]
+            available=True,
+            exact_object_found=True,
+            readback_verified=True,
+        )
+
+        with self.assertRaisesRegex(ValueError, "authority"):
+            advance_resolution(receipt)
+
     def test_negative_budget_is_rejected(self) -> None:
         with self.assertRaisesRegex(ValueError, "remaining_budget"):
             decide_navigation((), remaining_budget=-1)
