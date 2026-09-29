@@ -30,7 +30,7 @@ LIMIT 5
 
         rendered = render_personal_context_query(probe)
 
-        self.assertIn("Library of Congress authority-search episode", rendered)
+        self.assertNotIn("Library of Congress authority-search episode", rendered)
         self.assertIn("Require:", rendered)
         self.assertIn("Prefer:", rendered)
         self.assertNotIn("generic library recommendations", rendered)
@@ -38,6 +38,21 @@ LIMIT 5
         self.assertIn("2026-09-19", rendered)
         self.assertIn("at most 5", rendered)
         self.assertIn("process or function", rendered)
+
+    def test_target_is_operator_metadata_not_retrieval_text(self) -> None:
+        probe = parse_probe(
+            """PROBE RELATIONAL
+TARGET "headline attractor that must stay operator-side"
+MUST "typed authority relation"
+LIMIT 3
+"""
+        )
+
+        rendered = render_personal_context_query(probe)
+
+        self.assertEqual(probe.target, "headline attractor that must stay operator-side")
+        self.assertNotIn(probe.target, rendered)
+        self.assertIn("typed authority relation", rendered)
 
     def test_literal_probe_keeps_exact_anchor_instruction(self) -> None:
         probe = parse_probe(
@@ -52,12 +67,14 @@ LIMIT 3
 
         self.assertIn("exact names or phrases", rendered)
         self.assertIn("фрактальные огурцы", rendered)
+        self.assertNotIn("fractal cucumbers", rendered)
 
     def test_unknown_mode_is_rejected(self) -> None:
         with self.assertRaisesRegex(ValueError, "unsupported probe mode"):
             parse_probe(
                 """PROBE MAGIC
 TARGET "anything"
+MUST "anchor"
 LIMIT 3
 """
             )
@@ -71,14 +88,36 @@ LIMIT 3
 """
             )
 
+    def test_positive_retrieval_anchor_is_required(self) -> None:
+        with self.assertRaisesRegex(ValueError, "at least one MUST or SHOULD"):
+            parse_probe(
+                """PROBE FUNCTIONAL
+TARGET "operator-only label"
+LIMIT 3
+"""
+            )
+
     def test_limit_is_bounded(self) -> None:
-        with self.assertRaisesRegex(ValueError, "LIMIT must be between 1 and 10"):
+        with self.assertRaisesRegex(ValueError, "integer between 1 and 10"):
             parse_probe(
                 """PROBE RELATIONAL
 TARGET "authority relation episode"
+MUST "typed relation"
 LIMIT 50
 """
             )
+
+    def test_limit_spelling_matches_grammar(self) -> None:
+        for value in ("03", "+3", "3 "):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    parse_probe(
+                        f"""PROBE SEMANTIC
+TARGET "bounded target"
+MUST "anchor"
+LIMIT {value}
+"""
+                    )
 
     def test_repeated_clauses_are_bounded(self) -> None:
         with self.assertRaisesRegex(ValueError, "MUST may appear at most 2 times"):
@@ -97,6 +136,7 @@ LIMIT 3
             parse_probe(
                 """PROBE SEMANTIC
 TARGET "bounded target"
+MUST "anchor"
 TIME "2026-09"
 TIME "2026-08"
 LIMIT 3
@@ -113,6 +153,36 @@ MUST "exact anchor"
 LIMIT 3
 """
             )
+
+    def test_whitespace_language_matches_grammar(self) -> None:
+        invalid = (
+            """PROBE SEMANTIC
+
+TARGET "bounded target"
+MUST "anchor"
+LIMIT 3
+""",
+            """PROBE   SEMANTIC
+TARGET "bounded target"
+MUST "anchor"
+LIMIT 3
+""",
+            """ PROBE SEMANTIC
+TARGET "bounded target"
+MUST "anchor"
+LIMIT 3
+""",
+            """PROBE SEMANTIC
+TARGET   "bounded target"
+MUST "anchor"
+LIMIT 3
+""",
+        )
+
+        for source in invalid:
+            with self.subTest(source=source):
+                with self.assertRaises(ValueError):
+                    parse_probe(source)
 
     def test_documented_lark_grammar_is_bounded_and_matches_light_sonar(self) -> None:
         grammar = (ROOT / "sonar" / "sonar_query.lark").read_text(encoding="utf-8")

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 
 
 ALLOWED_MODES = ("LITERAL", "SEMANTIC", "FUNCTIONAL", "RELATIONAL")
@@ -30,7 +31,8 @@ class SonarProbe:
 
 
 def _parse_quoted(value: str, field: str) -> str:
-    value = value.strip()
+    if value != value.strip():
+        raise ValueError(f"{field} must use exactly one separator space")
     if len(value) < 2 or not (value.startswith('"') and value.endswith('"')):
         raise ValueError(f"{field} must be a double-quoted string")
     parsed = value[1:-1]
@@ -50,11 +52,19 @@ def _append_bounded(values: list[str], raw_value: str, field: str) -> None:
 
 
 def parse_probe(text: str) -> SonarProbe:
-    lines = [line.strip() for line in text.splitlines() if line.strip()]
-    if not lines or not lines[0].startswith("PROBE "):
+    lines = text.splitlines()
+    if not lines:
         raise ValueError("PROBE mode is required")
+    if any(not line for line in lines):
+        raise ValueError("blank lines are not allowed")
+    if any(line != line.strip() for line in lines):
+        raise ValueError("leading or trailing whitespace is not allowed")
 
-    mode = lines[0][len("PROBE ") :].strip()
+    probe_parts = lines[0].split(" ")
+    if len(probe_parts) != 2 or probe_parts[0] != "PROBE":
+        raise ValueError("PROBE must use exactly one separator space")
+
+    mode = probe_parts[1]
     if mode not in ALLOWED_MODES:
         raise ValueError(f"unsupported probe mode: {mode}")
 
@@ -71,6 +81,8 @@ def parse_probe(text: str) -> SonarProbe:
         if " " not in line:
             raise ValueError(f"invalid clause: {line}")
         keyword, raw_value = line.split(" ", 1)
+        if not raw_value or raw_value.startswith(" "):
+            raise ValueError(f"{keyword} must use exactly one separator space")
 
         if keyword not in _CLAUSE_ORDER:
             raise ValueError(f"unsupported clause: {keyword}")
@@ -100,16 +112,15 @@ def parse_probe(text: str) -> SonarProbe:
         elif keyword == "LIMIT":
             if saw_limit:
                 raise ValueError("LIMIT may appear only once")
-            try:
-                limit = int(raw_value)
-            except ValueError as exc:
-                raise ValueError("LIMIT must be an integer") from exc
-            if not 1 <= limit <= 10:
-                raise ValueError("LIMIT must be between 1 and 10")
+            if not re.fullmatch(r"(?:10|[1-9])", raw_value):
+                raise ValueError("LIMIT must be an integer between 1 and 10")
+            limit = int(raw_value)
             saw_limit = True
 
     if target is None:
         raise ValueError("TARGET is required")
+    if not must and not should:
+        raise ValueError("at least one MUST or SHOULD retrieval anchor is required")
 
     return SonarProbe(
         mode=mode,
@@ -123,10 +134,10 @@ def parse_probe(text: str) -> SonarProbe:
 
 
 _MODE_GUIDANCE = {
-    "LITERAL": "Prioritize exact names or phrases from the target and required anchors.",
-    "SEMANTIC": "Recover the same information need by meaning even when the wording differs.",
-    "FUNCTIONAL": "Recover the target by its process or function; do not rely on its headline wording unless required anchors contain it.",
-    "RELATIONAL": "Recover the target through its distinctive relations, roles, or authority structure.",
+    "LITERAL": "Prioritize exact names or phrases from the required anchors.",
+    "SEMANTIC": "Recover the information need by meaning even when the wording differs.",
+    "FUNCTIONAL": "Recover the target by its process or function without relying on its operator-side target label.",
+    "RELATIONAL": "Recover the target through its distinctive relations, roles, or authority structure without relying on its operator-side target label.",
 }
 
 
@@ -136,7 +147,6 @@ def _joined(values: tuple[str, ...]) -> str:
 
 def render_personal_context_query(probe: SonarProbe) -> str:
     parts = [
-        f"Find past context about: {probe.target}.",
         f"Probe mode: {probe.mode}. {_MODE_GUIDANCE[probe.mode]}",
     ]
     if probe.must:
