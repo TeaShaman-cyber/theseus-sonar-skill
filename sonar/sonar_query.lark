@@ -1,8 +1,7 @@
 start: probe
-probe: probe_line NL target_line (NL clause_line)* NL?
+probe: probe_line NL target_line (NL must_line)? (NL must_line)? (NL should_line)? (NL should_line)? (NL must_not_line)? (NL must_not_line)? (NL time_line)? (NL limit_line)? NL?
 probe_line: "PROBE" SP MODE
 target_line: "TARGET" SP QUOTED
-clause_line: must_line | should_line | must_not_line | time_line | limit_line
 must_line: "MUST" SP QUOTED
 should_line: "SHOULD" SP QUOTED
 must_not_line: "MUST_NOT" SP QUOTED
@@ -10,7 +9,7 @@ time_line: "TIME" SP QUOTED
 limit_line: "LIMIT" SP LIMIT_VALUE
 
 MODE: "LITERAL" | "SEMANTIC" | "FUNCTIONAL" | "RELATIONAL"
-QUOTED: /"[^"\n]{1,240}"/
+QUOTED: /"[^"\\n]{1,240}"/
 LIMIT_VALUE: /10|[1-9]/
 SP: " "
-NL: /\r?\n/
+NL: /\\r?\\n/

@@ -26,13 +26,15 @@ LIMIT 5
             probe.must,
             ("keyword discovery -> useful catalog records -> standardized subject headings",),
         )
+        self.assertEqual(probe.must_not, ("generic library recommendations",))
 
         rendered = render_personal_context_query(probe)
 
         self.assertIn("Library of Congress authority-search episode", rendered)
         self.assertIn("Require:", rendered)
         self.assertIn("Prefer:", rendered)
-        self.assertIn("Exclude:", rendered)
+        self.assertNotIn("generic library recommendations", rendered)
+        self.assertNotIn("Exclude:", rendered)
         self.assertIn("2026-09-19", rendered)
         self.assertIn("at most 5", rendered)
         self.assertIn("process or function", rendered)
@@ -78,7 +80,41 @@ LIMIT 50
 """
             )
 
-    def test_documented_lark_grammar_covers_light_sonar_modes(self) -> None:
+    def test_repeated_clauses_are_bounded(self) -> None:
+        with self.assertRaisesRegex(ValueError, "MUST may appear at most 2 times"):
+            parse_probe(
+                """PROBE SEMANTIC
+TARGET "bounded target"
+MUST "one"
+MUST "two"
+MUST "three"
+LIMIT 3
+"""
+            )
+
+    def test_singleton_clauses_are_rejected_when_repeated(self) -> None:
+        with self.assertRaisesRegex(ValueError, "TIME may appear only once"):
+            parse_probe(
+                """PROBE SEMANTIC
+TARGET "bounded target"
+TIME "2026-09"
+TIME "2026-08"
+LIMIT 3
+"""
+            )
+
+    def test_clause_order_matches_grammar(self) -> None:
+        with self.assertRaisesRegex(ValueError, "canonical order"):
+            parse_probe(
+                """PROBE RELATIONAL
+TARGET "authority relation episode"
+SHOULD "typed relation"
+MUST "exact anchor"
+LIMIT 3
+"""
+            )
+
+    def test_documented_lark_grammar_is_bounded_and_matches_light_sonar(self) -> None:
         grammar = (ROOT / "sonar" / "sonar_query.lark").read_text(encoding="utf-8")
 
         for mode in ("LITERAL", "SEMANTIC", "FUNCTIONAL", "RELATIONAL"):
@@ -86,6 +122,12 @@ LIMIT 50
 
         for clause in ("TARGET", "MUST", "SHOULD", "MUST_NOT", "TIME", "LIMIT"):
             self.assertIn(clause, grammar)
+
+        self.assertNotIn("(NL clause_line)*", grammar)
+        self.assertIn("(NL must_line)? (NL must_line)?", grammar)
+        self.assertIn("(NL should_line)? (NL should_line)?", grammar)
+        self.assertIn("(NL must_not_line)? (NL must_not_line)?", grammar)
+        self.assertIn("(NL time_line)? (NL limit_line)?", grammar)
 
 
 if __name__ == "__main__":
