@@ -138,6 +138,15 @@ def decide_navigation(
 def advance_resolution(receipt: ResolutionReceipt) -> NavigationDecision:
     if not isinstance(receipt.authority, AuthorityLayer):
         raise ValueError("authority must be an AuthorityLayer")
+    if any(
+        type(value) is not bool
+        for value in (
+            receipt.available,
+            receipt.exact_object_found,
+            receipt.readback_verified,
+        )
+    ):
+        raise ValueError("resolution evidence flags must be bool")
     if receipt.readback_verified and not receipt.exact_object_found:
         raise ValueError("readback_verified requires exact_object_found")
     if receipt.exact_object_found and not receipt.available:
