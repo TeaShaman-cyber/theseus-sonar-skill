@@ -80,8 +80,8 @@ _RESOLUTION_KEYS = frozenset(
 
 
 def _validate_navigation_receipt(receipt: Receipt) -> None:
-    if not isinstance(receipt, Receipt):
-        raise ValueError("navigation receipt must be a Receipt")
+    if type(receipt) is not Receipt:
+        raise ValueError("navigation receipt must be an exact Receipt")
     if not isinstance(receipt.mode, ProbeMode):
         raise ValueError("navigation mode must be a ProbeMode")
     if not isinstance(receipt.evidence, Evidence):
