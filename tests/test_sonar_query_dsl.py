@@ -92,6 +92,28 @@ LIMIT 3
 """
                     )
 
+    def test_target_cannot_be_embedded_in_longer_retrieval_clauses(self) -> None:
+        cases = (
+            ("MUST", "secret headline project decision"),
+            ("SHOULD", "project decision about SECRET HEADLINE"),
+            ("TIME", "before secret headline migration"),
+        )
+
+        for clause, value in cases:
+            with self.subTest(clause=clause, value=value):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "TARGET must not appear inside retrieval clauses",
+                ):
+                    parse_probe(
+                        f"""PROBE FUNCTIONAL
+TARGET "secret headline"
+MUST "independent functional anchor"
+{clause} "{value}"
+LIMIT 3
+"""
+                    )
+
     def test_literal_probe_keeps_exact_anchor_instruction(self) -> None:
         probe = parse_probe(
             """PROBE LITERAL

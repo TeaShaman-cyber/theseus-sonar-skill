@@ -131,9 +131,14 @@ def parse_probe(text: str) -> SonarProbe:
 
     normalized_target = " ".join(target.split()).casefold()
     for value in (*must, *should, *((time_value,) if time_value is not None else ())):
-        if " ".join(value.split()).casefold() == normalized_target:
+        normalized_value = " ".join(value.split()).casefold()
+        if normalized_value == normalized_target:
             raise ValueError(
                 "TARGET must not be duplicated into retrieval clauses"
+            )
+        if normalized_target in normalized_value:
+            raise ValueError(
+                "TARGET must not appear inside retrieval clauses"
             )
 
     return SonarProbe(
