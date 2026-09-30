@@ -32,7 +32,7 @@ MUTMUT_RUN_EXIT=$run_code
 export MUTMUT_RUN_EXIT
 mutmut export-cicd-stats >mutmut-export.log 2>&1
 export_code=$?
-mutmut show all >mutmut-survivors.log 2>&1
+mutmut results >mutmut-survivors.log 2>&1
 show_code=$?
 set -e
 

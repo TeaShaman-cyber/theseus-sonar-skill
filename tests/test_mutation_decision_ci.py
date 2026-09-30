@@ -62,7 +62,7 @@ class MutationDecisionCiContractTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         text = ENDPOINT.read_text()
         self.assertIn("mutmut export-cicd-stats", text)
-        self.assertIn("mutmut show all", text)
+        self.assertIn("mutmut results", text)
         self.assertIn('"profile":"sonar_decision_boundary"', text)
         self.assertIn('"only_mutate":"scripts/sonar_decision.py"', text)
         self.assertIn('"tests":"tests/test_sonar_decision.py"', text)
