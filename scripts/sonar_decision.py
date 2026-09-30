@@ -175,6 +175,8 @@ def decide_navigation(
     receipts: tuple[Receipt, ...],
     remaining_budget: int,
 ) -> NavigationDecision:
+    if type(remaining_budget) is not int:
+        raise ValueError("remaining_budget must be an int")
     if remaining_budget < 0:
         raise ValueError("remaining_budget must be non-negative")
 
