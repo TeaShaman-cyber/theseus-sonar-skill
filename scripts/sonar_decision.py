@@ -19,6 +19,13 @@ class ProbeMode(str, Enum):
     RELATIONAL = "RELATIONAL"
 
 
+class PropositionProvenance(str, Enum):
+    QUERY_CONSTRAINT = "QUERY_CONSTRAINT"
+    RETRIEVED_HISTORY = "RETRIEVED_HISTORY"
+    SYNTHESIZED_CONTEXT = "SYNTHESIZED_CONTEXT"
+    UNKNOWN = "UNKNOWN"
+
+
 class NavigationState(str, Enum):
     UNLOCATED = "UNLOCATED"
     LOCATED = "LOCATED"
@@ -45,6 +52,14 @@ class AuthorityLayer(str, Enum):
 
 
 @dataclass(frozen=True)
+class PropositionEvidence:
+    mode: ProbeMode
+    evidence: Evidence
+    provenance: PropositionProvenance
+    source: str = "personal_context.search"
+
+
+@dataclass(frozen=True)
 class Receipt:
     mode: ProbeMode
     evidence: Evidence
@@ -68,7 +83,7 @@ class ResolutionReceipt:
 
 _DISCRIMINATING_MODES = frozenset({ProbeMode.FUNCTIONAL, ProbeMode.RELATIONAL})
 _NAVIGATION_SOURCE = "personal_context.search"
-_NAVIGATION_KEYS = frozenset({"mode", "evidence", "source"})
+_NAVIGATION_KEYS = frozenset({"mode", "evidence", "provenance", "source"})
 _RESOLUTION_KEYS = frozenset(
     {
         "authority",
@@ -92,7 +107,22 @@ def _validate_navigation_receipt(receipt: Receipt) -> None:
         )
 
 
-def decode_navigation_receipt(raw: object) -> Receipt:
+def _validate_proposition_evidence(value: PropositionEvidence) -> None:
+    if type(value) is not PropositionEvidence:
+        raise ValueError("proposition evidence must be an exact PropositionEvidence")
+    if not isinstance(value.mode, ProbeMode):
+        raise ValueError("proposition mode must be a ProbeMode")
+    if not isinstance(value.evidence, Evidence):
+        raise ValueError("proposition evidence must be an Evidence")
+    if not isinstance(value.provenance, PropositionProvenance):
+        raise ValueError("proposition provenance must be a PropositionProvenance")
+    if type(value.source) is not str or value.source != _NAVIGATION_SOURCE:
+        raise ValueError(
+            "proposition evidence must come from personal_context.search"
+        )
+
+
+def decode_proposition_evidence(raw: object) -> PropositionEvidence:
     if type(raw) is not dict:
         raise ValueError("navigation receipt must be a JSON object")
 
@@ -115,15 +145,53 @@ def decode_navigation_receipt(raw: object) -> Receipt:
     except ValueError as exc:
         raise ValueError("navigation evidence is not an allowed Evidence") from exc
 
+    provenance_raw = raw["provenance"]
+    if type(provenance_raw) is not str:
+        raise ValueError("proposition provenance must be a string enum value")
+    try:
+        provenance = PropositionProvenance(provenance_raw)
+    except ValueError as exc:
+        raise ValueError(
+            "proposition provenance is not an allowed PropositionProvenance"
+        ) from exc
+
     source_raw = raw["source"]
     if type(source_raw) is not str or source_raw != _NAVIGATION_SOURCE:
         raise ValueError(
             "navigation source must be personal_context.search"
         )
 
-    receipt = Receipt(mode=mode, evidence=evidence, source=source_raw)
+    value = PropositionEvidence(
+        mode=mode,
+        evidence=evidence,
+        provenance=provenance,
+        source=source_raw,
+    )
+    _validate_proposition_evidence(value)
+    return value
+
+
+def admit_navigation_receipt(value: PropositionEvidence) -> Receipt:
+    _validate_proposition_evidence(value)
+
+    evidence = value.evidence
+    if (
+        evidence is Evidence.STRONG
+        and value.provenance is not PropositionProvenance.RETRIEVED_HISTORY
+    ):
+        evidence = Evidence.WEAK
+
+    receipt = Receipt(
+        mode=value.mode,
+        evidence=evidence,
+        source=value.source,
+    )
     _validate_navigation_receipt(receipt)
     return receipt
+
+
+def decode_navigation_receipt(raw: object) -> Receipt:
+    return admit_navigation_receipt(decode_proposition_evidence(raw))
 
 
 def _validate_resolution_receipt(receipt: ResolutionReceipt) -> None:

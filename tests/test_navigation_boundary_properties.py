@@ -22,6 +22,12 @@ PROPERTY_SETTINGS = settings(
 
 MODE_VALUES = tuple(mode.value for mode in ProbeMode)
 EVIDENCE_VALUES = tuple(evidence.value for evidence in Evidence)
+PROVENANCE_VALUES = (
+    "QUERY_CONSTRAINT",
+    "RETRIEVED_HISTORY",
+    "SYNTHESIZED_CONTEXT",
+    "UNKNOWN",
+)
 SOURCE = "personal_context.search"
 
 JSON_SCALAR_OR_CONTAINER = st.one_of(
@@ -43,12 +49,22 @@ INVALID_EVIDENCE = JSON_SCALAR_OR_CONTAINER.filter(
 INVALID_SOURCE = JSON_SCALAR_OR_CONTAINER.filter(
     lambda value: not (type(value) is str and value == SOURCE)
 )
+INVALID_PROVENANCE = JSON_SCALAR_OR_CONTAINER.filter(
+    lambda value: not (type(value) is str and value in PROVENANCE_VALUES)
+)
 
 
-def raw_receipt(*, mode="LITERAL", evidence="STRONG", source=SOURCE):
+def raw_receipt(
+    *,
+    mode="LITERAL",
+    evidence="STRONG",
+    provenance="RETRIEVED_HISTORY",
+    source=SOURCE,
+):
     return {
         "mode": mode,
         "evidence": evidence,
+        "provenance": provenance,
         "source": source,
     }
 
@@ -91,6 +107,12 @@ class NavigationBoundaryPropertyTest(unittest.TestCase):
     def test_wrong_source_never_decodes(self, source) -> None:
         with self.assertRaises(ValueError):
             decode_navigation_receipt(raw_receipt(source=source))
+
+    @PROPERTY_SETTINGS
+    @given(provenance=INVALID_PROVENANCE)
+    def test_malformed_provenance_never_decodes(self, provenance) -> None:
+        with self.assertRaises(ValueError):
+            decode_navigation_receipt(raw_receipt(provenance=provenance))
 
     def test_navigation_receipt_requires_proposition_provenance(self) -> None:
         with self.assertRaisesRegex(ValueError, "keys"):
