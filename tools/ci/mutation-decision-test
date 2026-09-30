@@ -54,6 +54,10 @@ fifth_survivor=$(sed -n 's/^[[:space:]]*\([^:][^:]*\): survived$/\1/p' mutmut-su
 if [ -n "$fifth_survivor" ]; then
     mutmut show "$fifth_survivor" >mutmut-fifth-survivor.log 2>&1
 fi
+sixth_survivor=$(sed -n 's/^[[:space:]]*\([^:][^:]*\): survived$/\1/p' mutmut-survivors.log | sed -n '6p')
+if [ -n "$sixth_survivor" ]; then
+    mutmut show "$sixth_survivor" >mutmut-sixth-survivor.log 2>&1
+fi
 set -e
 
 if [ "$export_code" -ne 0 ] || [ ! -f mutants/mutmut-cicd-stats.json ]; then
@@ -146,6 +150,11 @@ if int(stats.get("survived", 0)):
     fifth_diff_path=Path("mutmut-fifth-survivor.log")
     if fifth_diff_path.exists():
         receipt["fifth_survivor_diff"]=fifth_diff_path.read_text(errors="replace")[:12000]
+    if len(survivor_ids) > 5:
+        receipt["sixth_survivor"]=survivor_ids[5]
+    sixth_diff_path=Path("mutmut-sixth-survivor.log")
+    if sixth_diff_path.exists():
+        receipt["sixth_survivor_diff"]=sixth_diff_path.read_text(errors="replace")[:12000]
 Path(os.environ["RECEIPT"]).write_text(json.dumps(receipt,indent=2,sort_keys=True)+"\n")
 print(f"MUTATION_TEST_STATUS {status}")
 print("MUTATION_TEST_STATS " + " ".join(
