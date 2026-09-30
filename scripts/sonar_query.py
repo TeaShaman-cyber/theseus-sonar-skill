@@ -129,6 +129,13 @@ def parse_probe(text: str) -> SonarProbe:
     if not must and not should:
         raise ValueError("at least one MUST or SHOULD retrieval anchor is required")
 
+    normalized_target = " ".join(target.split()).casefold()
+    for value in (*must, *should, *((time_value,) if time_value is not None else ())):
+        if " ".join(value.split()).casefold() == normalized_target:
+            raise ValueError(
+                "TARGET must not be duplicated into retrieval clauses"
+            )
+
     return SonarProbe(
         mode=mode,
         target=target,
