@@ -46,6 +46,10 @@ third_survivor=$(sed -n 's/^[[:space:]]*\([^:][^:]*\): survived$/\1/p' mutmut-su
 if [ -n "$third_survivor" ]; then
     mutmut show "$third_survivor" >mutmut-third-survivor.log 2>&1
 fi
+fourth_survivor=$(sed -n 's/^[[:space:]]*\([^:][^:]*\): survived$/\1/p' mutmut-survivors.log | sed -n '4p')
+if [ -n "$fourth_survivor" ]; then
+    mutmut show "$fourth_survivor" >mutmut-fourth-survivor.log 2>&1
+fi
 set -e
 
 if [ "$export_code" -ne 0 ] || [ ! -f mutants/mutmut-cicd-stats.json ]; then
@@ -128,6 +132,11 @@ if int(stats.get("survived", 0)):
     third_diff_path=Path("mutmut-third-survivor.log")
     if third_diff_path.exists():
         receipt["third_survivor_diff"]=third_diff_path.read_text(errors="replace")[:12000]
+    if len(survivor_ids) > 3:
+        receipt["fourth_survivor"]=survivor_ids[3]
+    fourth_diff_path=Path("mutmut-fourth-survivor.log")
+    if fourth_diff_path.exists():
+        receipt["fourth_survivor_diff"]=fourth_diff_path.read_text(errors="replace")[:12000]
 Path(os.environ["RECEIPT"]).write_text(json.dumps(receipt,indent=2,sort_keys=True)+"\n")
 print(f"MUTATION_TEST_STATUS {status}")
 print("MUTATION_TEST_STATS " + " ".join(
