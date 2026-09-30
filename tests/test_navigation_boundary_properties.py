@@ -92,6 +92,63 @@ class NavigationBoundaryPropertyTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             decode_navigation_receipt(raw_receipt(source=source))
 
+    def test_navigation_receipt_requires_proposition_provenance(self) -> None:
+        with self.assertRaisesRegex(ValueError, "keys"):
+            decode_navigation_receipt(
+                {
+                    "mode": "FUNCTIONAL",
+                    "evidence": "STRONG",
+                    "source": SOURCE,
+                }
+            )
+
+    def test_retrieved_history_can_preserve_strong_navigation_evidence(self) -> None:
+        receipt = decode_navigation_receipt(
+            {
+                "mode": "FUNCTIONAL",
+                "evidence": "STRONG",
+                "provenance": "RETRIEVED_HISTORY",
+                "source": SOURCE,
+            }
+        )
+
+        self.assertIs(receipt.evidence, Evidence.STRONG)
+
+    def test_non_historical_provenance_cannot_manufacture_located(self) -> None:
+        for provenance in (
+            "QUERY_CONSTRAINT",
+            "SYNTHESIZED_CONTEXT",
+            "UNKNOWN",
+        ):
+            with self.subTest(provenance=provenance):
+                literal = decode_navigation_receipt(
+                    {
+                        "mode": "LITERAL",
+                        "evidence": "STRONG",
+                        "provenance": "RETRIEVED_HISTORY",
+                        "source": SOURCE,
+                    }
+                )
+                functional = decode_navigation_receipt(
+                    {
+                        "mode": "FUNCTIONAL",
+                        "evidence": "STRONG",
+                        "provenance": provenance,
+                        "source": SOURCE,
+                    }
+                )
+
+                self.assertIs(functional.evidence, Evidence.WEAK)
+                decision = decide_navigation(
+                    (literal, functional),
+                    remaining_budget=1,
+                )
+                self.assertEqual(decision.state, NavigationState.UNLOCATED)
+                self.assertEqual(
+                    decision.next_action,
+                    NextAction.PROBE_PERSONAL_CONTEXT_SEARCH,
+                )
+
     def test_raw_navigation_receipt_requires_exact_keys(self) -> None:
         missing = raw_receipt()
         del missing["evidence"]
