@@ -71,6 +71,25 @@ class SonarDecisionTest(unittest.TestCase):
                     NextAction.PROBE_PERSONAL_CONTEXT_SEARCH,
                 )
 
+    def test_conflict_or_drift_at_zero_budget_is_terminal_unknown(self) -> None:
+        for evidence in (Evidence.CONFLICT, Evidence.DRIFT):
+            with self.subTest(evidence=evidence):
+                decision = decide_navigation(
+                    (
+                        Receipt(ProbeMode.FUNCTIONAL, Evidence.STRONG),
+                        Receipt(ProbeMode.RELATIONAL, Evidence.STRONG),
+                        Receipt(ProbeMode.SEMANTIC, evidence),
+                    ),
+                    remaining_budget=0,
+                )
+
+                self.assertEqual(decision.state, NavigationState.UNKNOWN)
+                self.assertEqual(decision.next_action, NextAction.NONE)
+                self.assertEqual(
+                    decision.reason,
+                    "navigation_budget_exhausted",
+                )
+
     def test_exhausted_navigation_budget_is_unknown(self) -> None:
         decision = decide_navigation(
             (Receipt(ProbeMode.LITERAL, Evidence.WEAK),),
