@@ -236,6 +236,12 @@ class SonarDecisionTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "personal_context.search"):
             decide_navigation((receipt,), remaining_budget=1)
 
+    def test_navigation_budget_must_be_an_exact_integer(self) -> None:
+        for value in (True, 0.5, "1", None):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(ValueError, "remaining_budget"):
+                    decide_navigation((), remaining_budget=value)  # type: ignore[arg-type]
+
     def test_negative_budget_is_rejected(self) -> None:
         with self.assertRaisesRegex(ValueError, "remaining_budget"):
             decide_navigation((), remaining_budget=-1)
