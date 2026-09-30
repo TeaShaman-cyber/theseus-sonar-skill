@@ -127,6 +127,8 @@ def decode_navigation_receipt(raw: object) -> Receipt:
 
 
 def _validate_resolution_receipt(receipt: ResolutionReceipt) -> None:
+    if type(receipt) is not ResolutionReceipt:
+        raise ValueError("resolution receipt must be an exact ResolutionReceipt")
     if not isinstance(receipt.authority, AuthorityLayer):
         raise ValueError("authority must be an AuthorityLayer")
     if any(
