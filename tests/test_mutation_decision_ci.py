@@ -48,6 +48,7 @@ class MutationDecisionCiContractTest(unittest.TestCase):
             text,
         )
         self.assertIn("process_isolation=fork", text)
+        self.assertIn("mutate_only_covered_lines=true", text)
         self.assertNotIn("boundary_properties", text)
         self.assertNotIn("hypothesis", text.lower())
 
@@ -61,12 +62,14 @@ class MutationDecisionCiContractTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         text = ENDPOINT.read_text()
         self.assertIn("mutmut export-cicd-stats", text)
+        self.assertIn("mutmut show all", text)
         self.assertIn('"profile":"sonar_decision_boundary"', text)
         self.assertIn('"only_mutate":"scripts/sonar_decision.py"', text)
         self.assertIn('"tests":"tests/test_sonar_decision.py"', text)
         self.assertIn('classified != total', text)
         self.assertIn('"unclassified_mutants":max(total-classified,0)', text)
         self.assertIn("MUTATION_TEST_RECEIPT", text)
+        self.assertIn("survivor_excerpt", text)
 
 
 if __name__ == "__main__":

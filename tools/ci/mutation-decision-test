@@ -32,6 +32,8 @@ MUTMUT_RUN_EXIT=$run_code
 export MUTMUT_RUN_EXIT
 mutmut export-cicd-stats >mutmut-export.log 2>&1
 export_code=$?
+mutmut show all >mutmut-survivors.log 2>&1
+show_code=$?
 set -e
 
 if [ "$export_code" -ne 0 ] || [ ! -f mutants/mutmut-cicd-stats.json ]; then
@@ -88,6 +90,10 @@ if status == "MUTATION_INCOMPLETE":
     log_path=Path("mutmut-run.log")
     if log_path.exists():
         receipt["run_log_tail"]=log_path.read_text(errors="replace")[-4000:]
+if int(stats.get("survived", 0)):
+    survivor_path=Path("mutmut-survivors.log")
+    if survivor_path.exists():
+        receipt["survivor_excerpt"]=survivor_path.read_text(errors="replace")[:12000]
 Path(os.environ["RECEIPT"]).write_text(json.dumps(receipt,indent=2,sort_keys=True)+"\n")
 print(f"MUTATION_TEST_STATUS {status}")
 print("MUTATION_TEST_STATS " + " ".join(
