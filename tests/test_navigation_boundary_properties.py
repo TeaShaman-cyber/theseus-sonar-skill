@@ -7,6 +7,7 @@ from scripts.sonar_decision import (
     NavigationState,
     NextAction,
     ProbeMode,
+    PropositionProvenance,
     Receipt,
     decide_navigation,
     decode_navigation_receipt,
@@ -59,12 +60,14 @@ def raw_receipt(
     mode="LITERAL",
     evidence="STRONG",
     provenance="RETRIEVED_HISTORY",
+    correlation_id="context-group-default",
     source=SOURCE,
 ):
     return {
         "mode": mode,
         "evidence": evidence,
         "provenance": provenance,
+        "correlation_id": correlation_id,
         "source": source,
     }
 
@@ -171,6 +174,64 @@ class NavigationBoundaryPropertyTest(unittest.TestCase):
                     NextAction.PROBE_PERSONAL_CONTEXT_SEARCH,
                 )
 
+    def test_same_context_group_across_probe_modes_is_not_independent(self) -> None:
+        receipts = (
+            decode_navigation_receipt(
+                raw_receipt(
+                    mode="LITERAL",
+                    evidence="STRONG",
+                    correlation_id="context-group-1",
+                )
+            ),
+            decode_navigation_receipt(
+                raw_receipt(
+                    mode="FUNCTIONAL",
+                    evidence="STRONG",
+                    correlation_id="context-group-1",
+                )
+            ),
+        )
+
+        decision = decide_navigation(receipts, remaining_budget=1)
+
+        self.assertEqual(decision.state, NavigationState.UNLOCATED)
+        self.assertEqual(
+            decision.next_action,
+            NextAction.PROBE_PERSONAL_CONTEXT_SEARCH,
+        )
+
+    def test_distinct_context_groups_can_support_located(self) -> None:
+        receipts = (
+            decode_navigation_receipt(
+                raw_receipt(
+                    mode="LITERAL",
+                    evidence="STRONG",
+                    correlation_id="context-group-1",
+                )
+            ),
+            decode_navigation_receipt(
+                raw_receipt(
+                    mode="FUNCTIONAL",
+                    evidence="STRONG",
+                    correlation_id="context-group-2",
+                )
+            ),
+        )
+
+        decision = decide_navigation(receipts, remaining_budget=1)
+        self.assertEqual(decision.state, NavigationState.LOCATED)
+
+    def test_direct_strong_receipt_retains_and_enforces_provenance(self) -> None:
+        forged = Receipt(
+            ProbeMode.FUNCTIONAL,
+            Evidence.STRONG,
+            PropositionProvenance.QUERY_CONSTRAINT,
+            "context-group-1",
+        )
+
+        with self.assertRaisesRegex(ValueError, "provenance"):
+            decide_navigation((forged,), remaining_budget=1)
+
     def test_raw_navigation_receipt_requires_exact_keys(self) -> None:
         missing = raw_receipt()
         del missing["evidence"]
@@ -266,10 +327,18 @@ class NavigationBoundaryPropertyTest(unittest.TestCase):
     def test_decoded_cross_mode_strong_evidence_can_only_locate(self) -> None:
         receipts = (
             decode_navigation_receipt(
-                raw_receipt(mode="LITERAL", evidence="STRONG")
+                raw_receipt(
+                    mode="LITERAL",
+                    evidence="STRONG",
+                    correlation_id="context-group-literal",
+                )
             ),
             decode_navigation_receipt(
-                raw_receipt(mode="FUNCTIONAL", evidence="STRONG")
+                raw_receipt(
+                    mode="FUNCTIONAL",
+                    evidence="STRONG",
+                    correlation_id="context-group-functional",
+                )
             ),
         )
 
