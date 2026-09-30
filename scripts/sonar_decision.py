@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
 
@@ -57,6 +58,7 @@ class PropositionEvidence:
     evidence: Evidence
     provenance: PropositionProvenance
     correlation_id: str
+    excluded: bool
     source: str = "personal_context.search"
 
 
@@ -87,7 +89,7 @@ class ResolutionReceipt:
 _DISCRIMINATING_MODES = frozenset({ProbeMode.FUNCTIONAL, ProbeMode.RELATIONAL})
 _NAVIGATION_SOURCE = "personal_context.search"
 _NAVIGATION_KEYS = frozenset(
-    {"mode", "evidence", "provenance", "correlation_id", "source"}
+    {"mode", "evidence", "provenance", "correlation_id", "excluded", "source"}
 )
 _RESOLUTION_KEYS = frozenset(
     {
@@ -132,6 +134,8 @@ def _validate_proposition_evidence(value: PropositionEvidence) -> None:
         raise ValueError("proposition provenance must be a PropositionProvenance")
     if type(value.correlation_id) is not str or not value.correlation_id:
         raise ValueError("proposition correlation_id must be a non-empty string")
+    if type(value.excluded) is not bool:
+        raise ValueError("proposition excluded must be a bool")
     if type(value.source) is not str or value.source != _NAVIGATION_SOURCE:
         raise ValueError(
             "proposition evidence must come from personal_context.search"
@@ -175,6 +179,10 @@ def decode_proposition_evidence(raw: object) -> PropositionEvidence:
     if type(correlation_id_raw) is not str or not correlation_id_raw:
         raise ValueError("proposition correlation_id must be a non-empty string")
 
+    excluded_raw = raw["excluded"]
+    if type(excluded_raw) is not bool:
+        raise ValueError("proposition excluded must be a bool")
+
     source_raw = raw["source"]
     if type(source_raw) is not str or source_raw != _NAVIGATION_SOURCE:
         raise ValueError(
@@ -186,14 +194,18 @@ def decode_proposition_evidence(raw: object) -> PropositionEvidence:
         evidence=evidence,
         provenance=provenance,
         correlation_id=correlation_id_raw,
+        excluded=excluded_raw,
         source=source_raw,
     )
     _validate_proposition_evidence(value)
     return value
 
 
-def admit_navigation_receipt(value: PropositionEvidence) -> Receipt:
+def admit_navigation_receipt(value: PropositionEvidence) -> Receipt | None:
     _validate_proposition_evidence(value)
+
+    if value.excluded:
+        return None
 
     evidence = value.evidence
     if (
@@ -213,8 +225,18 @@ def admit_navigation_receipt(value: PropositionEvidence) -> Receipt:
     return receipt
 
 
-def decode_navigation_receipt(raw: object) -> Receipt:
+def decode_navigation_receipt(raw: object) -> Receipt | None:
     return admit_navigation_receipt(decode_proposition_evidence(raw))
+
+
+def decode_navigation_receipts(raw_values: Iterable[object]) -> tuple[Receipt, ...]:
+    raw_snapshot = tuple(raw_values)
+    receipts: list[Receipt] = []
+    for raw in raw_snapshot:
+        receipt = decode_navigation_receipt(raw)
+        if receipt is not None:
+            receipts.append(receipt)
+    return tuple(receipts)
 
 
 def _validate_resolution_receipt(receipt: ResolutionReceipt) -> None:

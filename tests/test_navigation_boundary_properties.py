@@ -11,6 +11,7 @@ from scripts.sonar_decision import (
     Receipt,
     decide_navigation,
     decode_navigation_receipt,
+    decode_navigation_receipts,
 )
 
 
@@ -56,6 +57,9 @@ INVALID_PROVENANCE = JSON_SCALAR_OR_CONTAINER.filter(
 INVALID_CORRELATION_ID = JSON_SCALAR_OR_CONTAINER.filter(
     lambda value: not (type(value) is str and bool(value))
 )
+INVALID_EXCLUDED = JSON_SCALAR_OR_CONTAINER.filter(
+    lambda value: type(value) is not bool
+)
 
 
 def raw_receipt(
@@ -64,6 +68,7 @@ def raw_receipt(
     evidence="STRONG",
     provenance="RETRIEVED_HISTORY",
     correlation_id="context-group-default",
+    excluded=False,
     source=SOURCE,
 ):
     return {
@@ -71,6 +76,7 @@ def raw_receipt(
         "evidence": evidence,
         "provenance": provenance,
         "correlation_id": correlation_id,
+        "excluded": excluded,
         "source": source,
     }
 
@@ -90,6 +96,8 @@ class NavigationBoundaryPropertyTest(unittest.TestCase):
             raw_receipt(mode=mode, evidence=evidence)
         )
 
+        self.assertIsNotNone(receipt)
+        assert receipt is not None
         self.assertIsInstance(receipt, Receipt)
         self.assertIsInstance(receipt.mode, ProbeMode)
         self.assertIsInstance(receipt.evidence, Evidence)
@@ -129,6 +137,48 @@ class NavigationBoundaryPropertyTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             decode_navigation_receipt(raw_receipt(correlation_id=correlation_id))
 
+    @PROPERTY_SETTINGS
+    @given(excluded=INVALID_EXCLUDED)
+    def test_malformed_excluded_flag_never_decodes(self, excluded) -> None:
+        with self.assertRaises(ValueError):
+            decode_navigation_receipt(raw_receipt(excluded=excluded))
+
+    def test_excluded_group_does_not_produce_a_receipt(self) -> None:
+        receipt = decode_navigation_receipt(
+            raw_receipt(
+                mode="FUNCTIONAL",
+                evidence="STRONG",
+                correlation_id="known-distractor-group",
+                excluded=True,
+            )
+        )
+
+        self.assertIsNone(receipt)
+
+    def test_batch_admission_filters_excluded_groups_before_navigation(self) -> None:
+        receipts = decode_navigation_receipts(
+            (
+                raw_receipt(
+                    mode="LITERAL",
+                    evidence="STRONG",
+                    correlation_id="known-distractor-group",
+                    excluded=True,
+                ),
+                raw_receipt(
+                    mode="FUNCTIONAL",
+                    evidence="STRONG",
+                    correlation_id="independent-history-group",
+                    excluded=False,
+                ),
+            )
+        )
+
+        self.assertEqual(len(receipts), 1)
+        self.assertEqual(receipts[0].correlation_id, "independent-history-group")
+
+        decision = decide_navigation(receipts, remaining_budget=1)
+        self.assertEqual(decision.state, NavigationState.UNLOCATED)
+
     def test_navigation_receipt_requires_proposition_provenance(self) -> None:
         with self.assertRaisesRegex(ValueError, "keys"):
             decode_navigation_receipt(
@@ -146,10 +196,13 @@ class NavigationBoundaryPropertyTest(unittest.TestCase):
                 "evidence": "STRONG",
                 "provenance": "RETRIEVED_HISTORY",
                 "correlation_id": "context-group-history",
+                "excluded": False,
                 "source": SOURCE,
             }
         )
 
+        self.assertIsNotNone(receipt)
+        assert receipt is not None
         self.assertIs(receipt.evidence, Evidence.STRONG)
 
     def test_non_historical_provenance_cannot_manufacture_located(self) -> None:
@@ -165,6 +218,7 @@ class NavigationBoundaryPropertyTest(unittest.TestCase):
                         "evidence": "STRONG",
                         "provenance": "RETRIEVED_HISTORY",
                         "correlation_id": "context-group-history",
+                        "excluded": False,
                         "source": SOURCE,
                     }
                 )
@@ -174,10 +228,15 @@ class NavigationBoundaryPropertyTest(unittest.TestCase):
                         "evidence": "STRONG",
                         "provenance": provenance,
                         "correlation_id": "context-group-nonhistorical",
+                        "excluded": False,
                         "source": SOURCE,
                     }
                 )
 
+                self.assertIsNotNone(literal)
+                self.assertIsNotNone(functional)
+                assert literal is not None
+                assert functional is not None
                 self.assertIs(functional.evidence, Evidence.WEAK)
                 decision = decide_navigation(
                     (literal, functional),
