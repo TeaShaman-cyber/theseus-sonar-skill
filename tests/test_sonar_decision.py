@@ -181,6 +181,16 @@ class SonarDecisionTest(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "bool"):
                     advance_resolution(receipt)
 
+    def test_non_personal_context_search_source_is_rejected(self) -> None:
+        receipt = Receipt(
+            ProbeMode.FUNCTIONAL,
+            Evidence.STRONG,
+            source="other-source",
+        )
+
+        with self.assertRaisesRegex(ValueError, "personal_context.search"):
+            decide_navigation((receipt,), remaining_budget=1)
+
     def test_negative_budget_is_rejected(self) -> None:
         with self.assertRaisesRegex(ValueError, "remaining_budget"):
             decide_navigation((), remaining_budget=-1)
