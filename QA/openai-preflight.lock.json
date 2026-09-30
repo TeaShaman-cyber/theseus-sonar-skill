@@ -1,0 +1,15 @@
+{
+  "openai_skill_validator": {
+    "repo": "openai/skills",
+    "commit": "49f948faa9258a0c61caceaf225e179651397431",
+    "path": "skills/.system/skill-creator/scripts/quick_validate.py",
+    "source": "https://raw.githubusercontent.com/openai/skills/49f948faa9258a0c61caceaf225e179651397431/skills/.system/skill-creator/scripts/quick_validate.py",
+    "sha256": "6cc9dc3199c935916cf6f73fcbbbb0e3bb1b58c8f5109fefa499978908164f51",
+    "git_blob_sha": "0547b4041a5f58fa19892079a114a1df98286406"
+  },
+  "agent_plugins_schema": {
+    "source": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+    "sha256": "0a4aad95ce337878ad38802ebf0daa3fde76abe3f65400c86bcbb1ec0b3ab883",
+    "git_blob_sha": "8fed0e1fe45d0464aee880d3fbab228b71ecfc1e"
+  }
+}
