@@ -176,10 +176,11 @@ def decide_navigation(
     if remaining_budget < 0:
         raise ValueError("remaining_budget must be non-negative")
 
-    for receipt in receipts:
+    receipt_snapshot = tuple(receipts)
+    for receipt in receipt_snapshot:
         _validate_navigation_receipt(receipt)
 
-    evidence = {receipt.evidence for receipt in receipts}
+    evidence = {receipt.evidence for receipt in receipt_snapshot}
 
     if Evidence.CONFLICT in evidence:
         if remaining_budget > 0:
@@ -209,7 +210,7 @@ def decide_navigation(
 
     strong_modes = {
         receipt.mode
-        for receipt in receipts
+        for receipt in receipt_snapshot
         if receipt.evidence is Evidence.STRONG
     }
     has_discriminating_strong = bool(strong_modes & _DISCRIMINATING_MODES)
