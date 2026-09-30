@@ -23,6 +23,7 @@ from scripts.sonar_decision import (
     NavigationState,
     NextAction,
     ProbeMode,
+    PropositionProvenance,
     Receipt,
     decide_navigation,
 )
@@ -42,11 +43,32 @@ def build_python_outcomes() -> str:
             for index, mode in enumerate(modes):
                 bits = (state_bits >> (3 * index)) & 0b111
                 if bits & 0b001:
-                    receipts.append(Receipt(mode, Evidence.STRONG))
+                    receipts.append(
+                        Receipt(
+                            mode,
+                            Evidence.STRONG,
+                            PropositionProvenance.RETRIEVED_HISTORY,
+                            f"mode:{mode.value}",
+                        )
+                    )
                 if bits & 0b010:
-                    receipts.append(Receipt(mode, Evidence.DRIFT))
+                    receipts.append(
+                        Receipt(
+                            mode,
+                            Evidence.DRIFT,
+                            PropositionProvenance.RETRIEVED_HISTORY,
+                            f"mode:{mode.value}",
+                        )
+                    )
                 if bits & 0b100:
-                    receipts.append(Receipt(mode, Evidence.CONFLICT))
+                    receipts.append(
+                        Receipt(
+                            mode,
+                            Evidence.CONFLICT,
+                            PropositionProvenance.RETRIEVED_HISTORY,
+                            f"mode:{mode.value}",
+                        )
+                    )
 
             decision = decide_navigation(tuple(receipts), remaining_budget=budget)
             key = (decision.state, decision.next_action)

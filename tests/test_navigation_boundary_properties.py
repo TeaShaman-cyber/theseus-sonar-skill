@@ -53,6 +53,9 @@ INVALID_SOURCE = JSON_SCALAR_OR_CONTAINER.filter(
 INVALID_PROVENANCE = JSON_SCALAR_OR_CONTAINER.filter(
     lambda value: not (type(value) is str and value in PROVENANCE_VALUES)
 )
+INVALID_CORRELATION_ID = JSON_SCALAR_OR_CONTAINER.filter(
+    lambda value: not (type(value) is str and bool(value))
+)
 
 
 def raw_receipt(
@@ -90,6 +93,9 @@ class NavigationBoundaryPropertyTest(unittest.TestCase):
         self.assertIsInstance(receipt, Receipt)
         self.assertIsInstance(receipt.mode, ProbeMode)
         self.assertIsInstance(receipt.evidence, Evidence)
+        self.assertIsInstance(receipt.provenance, PropositionProvenance)
+        self.assertIs(type(receipt.correlation_id), str)
+        self.assertTrue(receipt.correlation_id)
         self.assertIs(type(receipt.source), str)
         self.assertEqual(receipt.source, SOURCE)
 
@@ -117,6 +123,12 @@ class NavigationBoundaryPropertyTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             decode_navigation_receipt(raw_receipt(provenance=provenance))
 
+    @PROPERTY_SETTINGS
+    @given(correlation_id=INVALID_CORRELATION_ID)
+    def test_malformed_correlation_id_never_decodes(self, correlation_id) -> None:
+        with self.assertRaises(ValueError):
+            decode_navigation_receipt(raw_receipt(correlation_id=correlation_id))
+
     def test_navigation_receipt_requires_proposition_provenance(self) -> None:
         with self.assertRaisesRegex(ValueError, "keys"):
             decode_navigation_receipt(
@@ -133,6 +145,7 @@ class NavigationBoundaryPropertyTest(unittest.TestCase):
                 "mode": "FUNCTIONAL",
                 "evidence": "STRONG",
                 "provenance": "RETRIEVED_HISTORY",
+                "correlation_id": "context-group-history",
                 "source": SOURCE,
             }
         )
@@ -159,6 +172,7 @@ class NavigationBoundaryPropertyTest(unittest.TestCase):
                         "mode": "FUNCTIONAL",
                         "evidence": "STRONG",
                         "provenance": provenance,
+                        "correlation_id": "context-group-nonhistorical",
                         "source": SOURCE,
                     }
                 )
@@ -252,8 +266,8 @@ class NavigationBoundaryPropertyTest(unittest.TestCase):
 
     def test_direct_string_modes_cannot_manufacture_located(self) -> None:
         receipts = (
-            Receipt("LITERAL", Evidence.STRONG),  # type: ignore[arg-type]
-            Receipt("FUNCTIONAL", Evidence.STRONG),  # type: ignore[arg-type]
+            Receipt("LITERAL", Evidence.STRONG, PropositionProvenance.RETRIEVED_HISTORY, "literal"),  # type: ignore[arg-type]
+            Receipt("FUNCTIONAL", Evidence.STRONG, PropositionProvenance.RETRIEVED_HISTORY, "functional"),  # type: ignore[arg-type]
         )
 
         with self.assertRaisesRegex(ValueError, "ProbeMode"):
@@ -278,8 +292,8 @@ class NavigationBoundaryPropertyTest(unittest.TestCase):
                 return object.__getattribute__(self, name)
 
         receipts = (
-            ShapeShiftingReceipt(ProbeMode.LITERAL, Evidence.STRONG),
-            ShapeShiftingReceipt(ProbeMode.FUNCTIONAL, Evidence.STRONG),
+            ShapeShiftingReceipt(ProbeMode.LITERAL, Evidence.STRONG, PropositionProvenance.RETRIEVED_HISTORY, "literal"),
+            ShapeShiftingReceipt(ProbeMode.FUNCTIONAL, Evidence.STRONG, PropositionProvenance.RETRIEVED_HISTORY, "functional"),
         )
 
         with self.assertRaisesRegex(ValueError, "Receipt"):
@@ -293,14 +307,14 @@ class NavigationBoundaryPropertyTest(unittest.TestCase):
                 if count == 0:
                     return iter(
                         (
-                            Receipt(ProbeMode.LITERAL, Evidence.WEAK),
-                            Receipt(ProbeMode.FUNCTIONAL, Evidence.WEAK),
+                            Receipt(ProbeMode.LITERAL, Evidence.WEAK, PropositionProvenance.RETRIEVED_HISTORY, "literal"),
+                            Receipt(ProbeMode.FUNCTIONAL, Evidence.WEAK, PropositionProvenance.RETRIEVED_HISTORY, "functional"),
                         )
                     )
                 return iter(
                     (
-                        Receipt("LITERAL", Evidence.STRONG),  # type: ignore[arg-type]
-                        Receipt("FUNCTIONAL", Evidence.STRONG),  # type: ignore[arg-type]
+                        Receipt("LITERAL", Evidence.STRONG, PropositionProvenance.RETRIEVED_HISTORY, "literal"),  # type: ignore[arg-type]
+                        Receipt("FUNCTIONAL", Evidence.STRONG, PropositionProvenance.RETRIEVED_HISTORY, "functional"),  # type: ignore[arg-type]
                     )
                 )
 
@@ -317,8 +331,8 @@ class NavigationBoundaryPropertyTest(unittest.TestCase):
 
     def test_direct_string_evidence_is_rejected_before_navigation(self) -> None:
         receipts = (
-            Receipt(ProbeMode.LITERAL, "STRONG"),  # type: ignore[arg-type]
-            Receipt(ProbeMode.FUNCTIONAL, "STRONG"),  # type: ignore[arg-type]
+            Receipt(ProbeMode.LITERAL, "STRONG", PropositionProvenance.RETRIEVED_HISTORY, "literal"),  # type: ignore[arg-type]
+            Receipt(ProbeMode.FUNCTIONAL, "STRONG", PropositionProvenance.RETRIEVED_HISTORY, "functional"),  # type: ignore[arg-type]
         )
 
         with self.assertRaisesRegex(ValueError, "Evidence"):

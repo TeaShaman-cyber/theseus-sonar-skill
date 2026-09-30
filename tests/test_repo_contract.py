@@ -81,6 +81,13 @@ class RepoContractTest(unittest.TestCase):
         self.assertNotIn("budget exhausted", skill)
         self.assertNotIn("decrement", skill.lower())
 
+    def test_sonar_skill_trace_preserves_correlation_identity(self) -> None:
+        skill = (ROOT / ".agents/skills/sonar/SKILL.md").read_text(encoding="utf-8")
+
+        self.assertIn("correlation_id", skill)
+        self.assertIn("GROUP <correlation_id>", skill)
+        self.assertIn("at least two distinct correlation groups", skill)
+
     def test_readme_preserves_retrieval_boundary(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("search miss != historical absence", readme)

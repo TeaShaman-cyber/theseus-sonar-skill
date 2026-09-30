@@ -100,7 +100,8 @@ LIGHT_SONAR
   RELATIONAL    -> recover by distinctive relations, roles, or authority structure
 
 LOCATE only when:
-  - at least two distinct probe modes carry independent STRONG evidence;
+  - at least two distinct probe modes carry STRONG evidence;
+  - those STRONG receipts belong to at least two distinct correlation groups;
   - at least one STRONG mode is FUNCTIONAL or RELATIONAL;
   - no unresolved DRIFT or CONFLICT remains.
 
@@ -110,7 +111,7 @@ Otherwise:
   - transport/provider unavailable -> DEGRADED.
 ```
 
-Do not count repeated retrieval of the same fragment or context group as independent evidence, even if it appears under different wording.
+Assign the same `correlation_id` to propositions that come from the same retrieved fragment or context group. Do not count repeated retrieval of one correlation group as independent evidence, even when different probe modes or wording returned it. A correlation identity is a navigation/deduplication label, not an authority locator.
 
 SEMANTIC may recover a useful region, but LITERAL + SEMANTIC alone is not sufficient to declare LOCATED.
 
@@ -303,8 +304,8 @@ For tests, debugging, or explicit requests for a Sonar trace, emit a compact rec
 SONAR_TRACE v0
 STATE <UNLOCATED|LOCATED|ROUTED|RESOLVED|VERIFIED|DEGRADED|UNKNOWN>
 SLOT <LIGHT_LITERAL|LIGHT_FUNCTIONAL|LIGHT_RELATIONAL|FULL_EXTRA> <UNUSED|USED|LOCKED>
-PROBE <MODE> <EVIDENCE> <PROVENANCE>
-PROBE <MODE> <EVIDENCE> <PROVENANCE>
+PROBE <MODE> <EVIDENCE> <PROVENANCE> GROUP <correlation_id>
+PROBE <MODE> <EVIDENCE> <PROVENANCE> GROUP <correlation_id>
 AUTHORITY <SESSION_SEARCH|GITHUB|MEMORY_PROVIDER|FILES|OTHER|UNKNOWN>
 NEXT <PROBE|RESOLVE_AUTHORITY|VERIFY_READBACK|NONE>
 BOUNDARY "<short reason>"

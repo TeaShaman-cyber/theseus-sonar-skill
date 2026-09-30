@@ -6,6 +6,7 @@ from scripts.sonar_decision import (
     NavigationState,
     NextAction,
     ProbeMode,
+    PropositionProvenance,
     Receipt,
     ResolutionReceipt,
     advance_resolution,
@@ -13,12 +14,21 @@ from scripts.sonar_decision import (
 )
 
 
+def history_receipt(mode, evidence, correlation_id):
+    return Receipt(
+        mode,
+        evidence,
+        PropositionProvenance.RETRIEVED_HISTORY,
+        correlation_id,
+    )
+
+
 class SonarDecisionTest(unittest.TestCase):
     def test_independent_personal_context_search_hits_locate_but_do_not_verify(self) -> None:
         decision = decide_navigation(
             (
-                Receipt(ProbeMode.LITERAL, Evidence.STRONG),
-                Receipt(ProbeMode.FUNCTIONAL, Evidence.STRONG),
+                history_receipt(ProbeMode.LITERAL, Evidence.STRONG, "literal"),
+                history_receipt(ProbeMode.FUNCTIONAL, Evidence.STRONG, "functional"),
             ),
             remaining_budget=1,
         )
@@ -33,8 +43,8 @@ class SonarDecisionTest(unittest.TestCase):
     def test_repeated_strong_same_mode_requests_another_personal_context_search_probe(self) -> None:
         decision = decide_navigation(
             (
-                Receipt(ProbeMode.FUNCTIONAL, Evidence.STRONG),
-                Receipt(ProbeMode.FUNCTIONAL, Evidence.STRONG),
+                history_receipt(ProbeMode.FUNCTIONAL, Evidence.STRONG, "functional"),
+                history_receipt(ProbeMode.FUNCTIONAL, Evidence.STRONG, "functional"),
             ),
             remaining_budget=1,
         )
@@ -45,8 +55,8 @@ class SonarDecisionTest(unittest.TestCase):
     def test_literal_plus_semantic_strong_still_needs_discriminating_probe(self) -> None:
         decision = decide_navigation(
             (
-                Receipt(ProbeMode.LITERAL, Evidence.STRONG),
-                Receipt(ProbeMode.SEMANTIC, Evidence.STRONG),
+                history_receipt(ProbeMode.LITERAL, Evidence.STRONG, "literal"),
+                history_receipt(ProbeMode.SEMANTIC, Evidence.STRONG, "semantic"),
             ),
             remaining_budget=1,
         )
@@ -59,9 +69,9 @@ class SonarDecisionTest(unittest.TestCase):
             with self.subTest(evidence=evidence):
                 decision = decide_navigation(
                     (
-                        Receipt(ProbeMode.FUNCTIONAL, Evidence.STRONG),
-                        Receipt(ProbeMode.RELATIONAL, Evidence.STRONG),
-                        Receipt(ProbeMode.SEMANTIC, evidence),
+                        history_receipt(ProbeMode.FUNCTIONAL, Evidence.STRONG, "functional"),
+                        history_receipt(ProbeMode.RELATIONAL, Evidence.STRONG, "relational"),
+                        history_receipt(ProbeMode.SEMANTIC, evidence, "semantic"),
                     ),
                     remaining_budget=1,
                 )
@@ -76,9 +86,9 @@ class SonarDecisionTest(unittest.TestCase):
             with self.subTest(evidence=evidence):
                 decision = decide_navigation(
                     (
-                        Receipt(ProbeMode.FUNCTIONAL, Evidence.STRONG),
-                        Receipt(ProbeMode.RELATIONAL, Evidence.STRONG),
-                        Receipt(ProbeMode.SEMANTIC, evidence),
+                        history_receipt(ProbeMode.FUNCTIONAL, Evidence.STRONG, "functional"),
+                        history_receipt(ProbeMode.RELATIONAL, Evidence.STRONG, "relational"),
+                        history_receipt(ProbeMode.SEMANTIC, evidence, "semantic"),
                     ),
                     remaining_budget=0,
                 )
@@ -92,7 +102,7 @@ class SonarDecisionTest(unittest.TestCase):
 
     def test_exhausted_navigation_budget_is_unknown(self) -> None:
         decision = decide_navigation(
-            (Receipt(ProbeMode.LITERAL, Evidence.WEAK),),
+            (history_receipt(ProbeMode.LITERAL, Evidence.WEAK, "literal"),),
             remaining_budget=0,
         )
 
@@ -230,6 +240,8 @@ class SonarDecisionTest(unittest.TestCase):
         receipt = Receipt(
             ProbeMode.FUNCTIONAL,
             Evidence.STRONG,
+            PropositionProvenance.RETRIEVED_HISTORY,
+            "functional",
             source="other-source",
         )
 

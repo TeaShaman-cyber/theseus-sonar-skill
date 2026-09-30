@@ -56,6 +56,7 @@ class PropositionEvidence:
     mode: ProbeMode
     evidence: Evidence
     provenance: PropositionProvenance
+    correlation_id: str
     source: str = "personal_context.search"
 
 
@@ -63,6 +64,8 @@ class PropositionEvidence:
 class Receipt:
     mode: ProbeMode
     evidence: Evidence
+    provenance: PropositionProvenance
+    correlation_id: str
     source: str = "personal_context.search"
 
 
@@ -83,7 +86,9 @@ class ResolutionReceipt:
 
 _DISCRIMINATING_MODES = frozenset({ProbeMode.FUNCTIONAL, ProbeMode.RELATIONAL})
 _NAVIGATION_SOURCE = "personal_context.search"
-_NAVIGATION_KEYS = frozenset({"mode", "evidence", "provenance", "source"})
+_NAVIGATION_KEYS = frozenset(
+    {"mode", "evidence", "provenance", "correlation_id", "source"}
+)
 _RESOLUTION_KEYS = frozenset(
     {
         "authority",
@@ -101,6 +106,15 @@ def _validate_navigation_receipt(receipt: Receipt) -> None:
         raise ValueError("navigation mode must be a ProbeMode")
     if not isinstance(receipt.evidence, Evidence):
         raise ValueError("navigation evidence must be an Evidence")
+    if not isinstance(receipt.provenance, PropositionProvenance):
+        raise ValueError("navigation provenance must be a PropositionProvenance")
+    if type(receipt.correlation_id) is not str or not receipt.correlation_id:
+        raise ValueError("navigation correlation_id must be a non-empty string")
+    if (
+        receipt.evidence is Evidence.STRONG
+        and receipt.provenance is not PropositionProvenance.RETRIEVED_HISTORY
+    ):
+        raise ValueError("STRONG navigation evidence requires RETRIEVED_HISTORY provenance")
     if type(receipt.source) is not str or receipt.source != _NAVIGATION_SOURCE:
         raise ValueError(
             "navigation receipts must come from personal_context.search"
@@ -116,6 +130,8 @@ def _validate_proposition_evidence(value: PropositionEvidence) -> None:
         raise ValueError("proposition evidence must be an Evidence")
     if not isinstance(value.provenance, PropositionProvenance):
         raise ValueError("proposition provenance must be a PropositionProvenance")
+    if type(value.correlation_id) is not str or not value.correlation_id:
+        raise ValueError("proposition correlation_id must be a non-empty string")
     if type(value.source) is not str or value.source != _NAVIGATION_SOURCE:
         raise ValueError(
             "proposition evidence must come from personal_context.search"
@@ -155,6 +171,10 @@ def decode_proposition_evidence(raw: object) -> PropositionEvidence:
             "proposition provenance is not an allowed PropositionProvenance"
         ) from exc
 
+    correlation_id_raw = raw["correlation_id"]
+    if type(correlation_id_raw) is not str or not correlation_id_raw:
+        raise ValueError("proposition correlation_id must be a non-empty string")
+
     source_raw = raw["source"]
     if type(source_raw) is not str or source_raw != _NAVIGATION_SOURCE:
         raise ValueError(
@@ -165,6 +185,7 @@ def decode_proposition_evidence(raw: object) -> PropositionEvidence:
         mode=mode,
         evidence=evidence,
         provenance=provenance,
+        correlation_id=correlation_id_raw,
         source=source_raw,
     )
     _validate_proposition_evidence(value)
@@ -184,6 +205,8 @@ def admit_navigation_receipt(value: PropositionEvidence) -> Receipt:
     receipt = Receipt(
         mode=value.mode,
         evidence=evidence,
+        provenance=value.provenance,
+        correlation_id=value.correlation_id,
         source=value.source,
     )
     _validate_navigation_receipt(receipt)
@@ -280,14 +303,20 @@ def decide_navigation(
             "navigation_budget_exhausted",
         )
 
-    strong_modes = {
-        receipt.mode
+    strong_receipts = tuple(
+        receipt
         for receipt in receipt_snapshot
         if receipt.evidence is Evidence.STRONG
-    }
+    )
+    strong_modes = {receipt.mode for receipt in strong_receipts}
+    strong_groups = {receipt.correlation_id for receipt in strong_receipts}
     has_discriminating_strong = bool(strong_modes & _DISCRIMINATING_MODES)
 
-    if len(strong_modes) >= 2 and has_discriminating_strong:
+    if (
+        len(strong_modes) >= 2
+        and len(strong_groups) >= 2
+        and has_discriminating_strong
+    ):
         return NavigationDecision(
             NavigationState.LOCATED,
             NextAction.RESOLVE_AUTHORITY,
