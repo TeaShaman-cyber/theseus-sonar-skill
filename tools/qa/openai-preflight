@@ -10,6 +10,7 @@ import tempfile
 import zipfile
 
 from jsonschema import Draft202012Validator
+import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 LOCK_PATH = ROOT / "QA" / "openai-preflight.lock.json"
@@ -17,6 +18,7 @@ SKILL_VALIDATOR = ROOT / "third_party" / "openai" / "quick_validate.py"
 PLUGIN_SCHEMA = ROOT / "third_party" / "agent-plugins" / "plugin.schema.json"
 CANONICAL_SKILL_DIR = ROOT / ".agents" / "skills" / "sonar"
 SOURCE_MANIFEST = ROOT / "packaging" / "sonar" / "plugin.json"
+OPENAI_AGENT = ROOT / ".agents" / "skills" / "sonar" / "agents" / "openai.yaml"
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -77,6 +79,25 @@ def validate_manifest(path: Path, schema: dict) -> None:
     Draft202012Validator(schema).validate(manifest)
 
 
+def validate_openai_agent(path: Path) -> None:
+    value = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if type(value) is not dict:
+        raise SystemExit("agents/openai.yaml must contain a mapping")
+    interface = value.get("interface")
+    if type(interface) is not dict:
+        raise SystemExit("agents/openai.yaml interface must be a mapping")
+    if interface.get("display_name") != "Sonar":
+        raise SystemExit("agents/openai.yaml display_name must be Sonar")
+    short = interface.get("short_description")
+    if type(short) is not str or not short.strip():
+        raise SystemExit("agents/openai.yaml short_description must be non-empty")
+    policy = value.get("policy")
+    if type(policy) is not dict:
+        raise SystemExit("agents/openai.yaml policy must be a mapping")
+    if policy.get("allow_implicit_invocation") is not True:
+        raise SystemExit("Sonar must explicitly allow implicit invocation")
+
+
 def main() -> int:
     lock = json.loads(LOCK_PATH.read_text(encoding="utf-8"))
 
@@ -92,6 +113,7 @@ def main() -> int:
 
     run_skill_validator(CANONICAL_SKILL_DIR)
     validate_manifest(SOURCE_MANIFEST, schema)
+    validate_openai_agent(OPENAI_AGENT)
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp_path = Path(tmp)
@@ -114,6 +136,9 @@ def main() -> int:
         plugin_root = unpacked / "sonar"
         run_skill_validator(plugin_root / "skills" / "sonar")
         validate_manifest(plugin_root / "plugin.json", schema)
+        validate_openai_agent(
+            plugin_root / "skills" / "sonar" / "agents" / "openai.yaml"
+        )
 
     print("OPENAI_PREFLIGHT_PASS")
     return 0

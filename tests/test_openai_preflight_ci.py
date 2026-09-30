@@ -61,6 +61,8 @@ class OpenAIPreflightContractTest(unittest.TestCase):
         self.assertIn('ROOT / "third_party" / "openai" / "quick_validate.py"', runner)
         self.assertIn('ROOT / "third_party" / "agent-plugins" / "plugin.schema.json"', runner)
         self.assertIn("OPENAI_PREFLIGHT_PASS", runner)
+        self.assertIn("validate_openai_agent", runner)
+        self.assertIn("allow_implicit_invocation", runner)
         self.assertIn("tools/qa/openai-preflight", workflow)
         self.assertIn("requirements/openai-preflight.txt", workflow)
         self.assertIn("PyYAML==6.0.3", requirements)

@@ -29,17 +29,21 @@ class PluginPackageTest(unittest.TestCase):
                     [
                         "sonar/plugin.json",
                         "sonar/skills/sonar/SKILL.md",
+                        "sonar/skills/sonar/agents/openai.yaml",
                     ],
                 )
                 manifest = json.loads(zf.read("sonar/plugin.json"))
                 packaged_skill = zf.read("sonar/skills/sonar/SKILL.md").decode("utf-8")
+                packaged_openai = zf.read(
+                    "sonar/skills/sonar/agents/openai.yaml"
+                ).decode("utf-8")
 
         canonical_skill = (
             ROOT / ".agents/skills/sonar/SKILL.md"
         ).read_text(encoding="utf-8")
 
         self.assertEqual(manifest["name"], "sonar")
-        self.assertEqual(manifest["version"], "0.1.0")
+        self.assertEqual(manifest["version"], "0.1.1")
         self.assertLessEqual(
             len(
                 manifest["extensions"]["com.openai"]["interface"][
@@ -49,6 +53,11 @@ class PluginPackageTest(unittest.TestCase):
             30,
         )
         self.assertEqual(packaged_skill, canonical_skill)
+        canonical_openai = (
+            ROOT / ".agents/skills/sonar/agents/openai.yaml"
+        ).read_text(encoding="utf-8")
+        self.assertEqual(packaged_openai, canonical_openai)
+        self.assertIn("allow_implicit_invocation: true", packaged_openai)
 
     def test_manifest_and_skill_identity_match(self) -> None:
         manifest = json.loads(

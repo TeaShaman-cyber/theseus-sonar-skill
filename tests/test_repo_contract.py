@@ -46,6 +46,22 @@ class RepoContractTest(unittest.TestCase):
             (ROOT / "tests/test_navigation_boundary_properties.py").is_file()
         )
 
+    def test_sonar_frontmatter_carries_high_value_negative_trigger_boundaries(self) -> None:
+        skill = (ROOT / ".agents/skills/sonar/SKILL.md").read_text(encoding="utf-8")
+        frontmatter = skill.split("---", 2)[1]
+
+        self.assertIn("Do not use when current-conversation context is sufficient", frontmatter)
+        self.assertIn("exact historical locator is already known", frontmatter)
+        self.assertIn("only current authoritative state is needed", frontmatter)
+
+    def test_sonar_openai_metadata_enables_implicit_invocation_explicitly(self) -> None:
+        metadata = (
+            ROOT / ".agents/skills/sonar/agents/openai.yaml"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn('display_name: "Sonar"', metadata)
+        self.assertIn("allow_implicit_invocation: true", metadata)
+
     def test_sonar_skill_has_narrow_discovery_trigger_contract(self) -> None:
         skill = (ROOT / ".agents/skills/sonar/SKILL.md").read_text(encoding="utf-8")
         parts = skill.split("---", 2)

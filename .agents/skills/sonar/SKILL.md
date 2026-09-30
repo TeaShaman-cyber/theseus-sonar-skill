@@ -1,6 +1,6 @@
 ---
 name: sonar
-description: Use when a task materially depends on prior chats, decisions, corrections, or references and the exact historical source is unknown, ambiguous, or likely phrased differently; also when nearby historical episodes could be mistaken for the intended one.
+description: Use when a task materially depends on missing or ambiguous prior-chat or project context, especially an earlier decision, correction, constraint, reference, or episode, and the exact historical source is unknown or wording may differ; use for recall, recovery, comparison, or continuation across chats. Do not use when current-conversation context is sufficient, an exact historical locator is already known and directly readable, or only current authoritative state is needed.
 ---
 
 # Sonar

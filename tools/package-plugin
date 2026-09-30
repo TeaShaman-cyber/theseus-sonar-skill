@@ -10,10 +10,12 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "packaging" / "sonar" / "plugin.json"
 SKILL = ROOT / ".agents" / "skills" / "sonar" / "SKILL.md"
+OPENAI_AGENT = ROOT / ".agents" / "skills" / "sonar" / "agents" / "openai.yaml"
 ROOT_NAME = "sonar"
 EXPECTED_FILES = (
     f"{ROOT_NAME}/plugin.json",
     f"{ROOT_NAME}/skills/sonar/SKILL.md",
+    f"{ROOT_NAME}/skills/sonar/agents/openai.yaml",
 )
 
 
@@ -56,6 +58,7 @@ def main() -> int:
 
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     skill = SKILL.read_text(encoding="utf-8")
+    openai_agent = OPENAI_AGENT.read_text(encoding="utf-8")
     validate_manifest(manifest)
     validate_skill(skill)
 
@@ -67,6 +70,7 @@ def main() -> int:
             (json.dumps(manifest, indent=2, ensure_ascii=False) + "\n").encode("utf-8"),
         )
         write_entry(zf, EXPECTED_FILES[1], skill.encode("utf-8"))
+        write_entry(zf, EXPECTED_FILES[2], openai_agent.encode("utf-8"))
 
     with zipfile.ZipFile(args.out, "r") as zf:
         names = tuple(zf.namelist())
