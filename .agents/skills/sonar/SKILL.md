@@ -1,6 +1,6 @@
 ---
 name: sonar
-description: Recover missing prior user or project context with bounded personal_context.search probes, proposition-provenance admission, and authority resolution. Use when a task materially depends on earlier chats, decisions, corrections, or references and the exact historical location is unknown. Do not use when the exact source is already known or when current-state verification should go directly to its authority.
+description: Use when a task materially depends on prior chats, decisions, corrections, or references and the exact historical source is unknown, ambiguous, or likely phrased differently; also when nearby historical episodes could be mistaken for the intended one.
 ---
 
 # Sonar
@@ -23,6 +23,37 @@ VERIFIED requires authority + exact object + readback
 ```
 
 Do not bulk-crawl history. Keep probes bounded. A transport or tool failure is DEGRADED, not a retrieval miss.
+
+## Trigger contract
+
+```text
+DISCOVERY != AUTO_TRIGGER
+
+TRIGGER when:
+  - the user explicitly asks to recall, recover, compare with, or continue
+    something from prior chats/history and the exact source is not already known;
+  - the current task materially depends on an earlier decision, correction,
+    constraint, reference, or episode that is missing from current context;
+  - competing historical episodes or wording drift make a direct remembered
+    answer unsafe without retrieval.
+
+DO_NOT_TRIGGER when:
+  - current-conversation context is already sufficient;
+  - the exact historical object/source locator is already known and can be
+    read directly;
+  - the task only needs current authoritative state, not historical
+    reconstruction;
+  - the question is generic and does not materially depend on user/project
+    history.
+```
+
+When a TRIGGER condition holds, load Sonar before guessing from remembered context or asking the user to reconstruct the missing history manually.
+
+Do not copy Superpowers' broad "1% chance means invoke" rule. Sonar has explicit adjacent negative controls: trigger only when historical reconstruction is materially required and the exact source is unknown or ambiguous.
+
+`DISCOVERY` means the host exposes this skill's metadata so it can be selected. `AUTO_TRIGGER` means a matching clean-session request actually causes the host/model to load Sonar before unsupported reconstruction. A discoverable skill is not automatically proven to auto-trigger.
+
+Never claim AUTO_TRIGGER from the contents of this file alone. Prove it with clean-session positive cases plus adjacent negative controls on the target host. If the host cannot expose or auto-trigger skills, report that capability as host-limited rather than simulating it.
 
 ## LIGHT_SONAR control block
 
