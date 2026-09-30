@@ -151,6 +151,32 @@ class SonarDecisionTest(unittest.TestCase):
         self.assertEqual(decision.state, NavigationState.DEGRADED)
         self.assertEqual(decision.next_action, NextAction.NONE)
 
+    def test_resolution_receipt_subclass_cannot_shape_shift_to_verified(self) -> None:
+        class ShapeShiftingResolutionReceipt(ResolutionReceipt):
+            def __getattribute__(self, name):
+                if name == "readback_verified":
+                    reads = object.__getattribute__(self, "__dict__").get(
+                        "_readback_reads",
+                        0,
+                    )
+                    object.__getattribute__(self, "__dict__")["_readback_reads"] = (
+                        reads + 1
+                    )
+                    if reads < 2:
+                        return False
+                    return True
+                return object.__getattribute__(self, name)
+
+        receipt = ShapeShiftingResolutionReceipt(
+            authority=AuthorityLayer.GITHUB,
+            available=True,
+            exact_object_found=True,
+            readback_verified=False,
+        )
+
+        with self.assertRaisesRegex(ValueError, "ResolutionReceipt"):
+            advance_resolution(receipt)
+
     def test_non_enum_authority_cannot_cross_resolution_boundary(self) -> None:
         receipt = ResolutionReceipt(
             authority="personal_context.search",  # type: ignore[arg-type]
