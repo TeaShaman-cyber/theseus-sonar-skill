@@ -70,6 +70,9 @@ class MutationDecisionCiContractTest(unittest.TestCase):
         self.assertIn('"unclassified_mutants":max(total-classified,0)', text)
         self.assertIn("MUTATION_TEST_RECEIPT", text)
         self.assertIn("survivor_excerpt", text)
+        self.assertIn("survivor_ids", text)
+        self.assertIn("first_survivor_diff", text)
+        self.assertIn('mutmut show "$first_survivor"', text)
 
 
 if __name__ == "__main__":

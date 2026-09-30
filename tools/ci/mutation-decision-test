@@ -33,7 +33,11 @@ export MUTMUT_RUN_EXIT
 mutmut export-cicd-stats >mutmut-export.log 2>&1
 export_code=$?
 mutmut results >mutmut-survivors.log 2>&1
-show_code=$?
+results_code=$?
+first_survivor=$(sed -n 's/^[[:space:]]*\([^:][^:]*\): survived$/\1/p' mutmut-survivors.log | head -n 1)
+if [ -n "$first_survivor" ]; then
+    mutmut show "$first_survivor" >mutmut-first-survivor.log 2>&1
+fi
 set -e
 
 if [ "$export_code" -ne 0 ] || [ ! -f mutants/mutmut-cicd-stats.json ]; then
@@ -93,7 +97,19 @@ if status == "MUTATION_INCOMPLETE":
 if int(stats.get("survived", 0)):
     survivor_path=Path("mutmut-survivors.log")
     if survivor_path.exists():
-        receipt["survivor_excerpt"]=survivor_path.read_text(errors="replace")[:12000]
+        survivor_text=survivor_path.read_text(errors="replace")
+        receipt["survivor_excerpt"]=survivor_text[:12000]
+        survivor_ids=[
+            line.strip()[:-len(": survived")]
+            for line in survivor_text.splitlines()
+            if line.strip().endswith(": survived")
+        ]
+        receipt["survivor_ids"]=survivor_ids
+        if survivor_ids:
+            receipt["first_survivor"]=survivor_ids[0]
+    diff_path=Path("mutmut-first-survivor.log")
+    if diff_path.exists():
+        receipt["first_survivor_diff"]=diff_path.read_text(errors="replace")[:12000]
 Path(os.environ["RECEIPT"]).write_text(json.dumps(receipt,indent=2,sort_keys=True)+"\n")
 print(f"MUTATION_TEST_STATUS {status}")
 print("MUTATION_TEST_STATS " + " ".join(
