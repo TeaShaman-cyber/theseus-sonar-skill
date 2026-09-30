@@ -54,6 +54,28 @@ LIMIT 3
         self.assertNotIn(probe.target, rendered)
         self.assertIn("typed authority relation", rendered)
 
+    def test_target_cannot_be_duplicated_into_rendered_clauses(self) -> None:
+        cases = (
+            ("MUST", "Secret Headline"),
+            ("SHOULD", "secret headline"),
+            ("TIME", "  secret   headline  "),
+        )
+
+        for clause, value in cases:
+            with self.subTest(clause=clause, value=value):
+                with self.assertRaisesRegex(
+                    ValueError,
+                    "TARGET must not be duplicated into retrieval clauses",
+                ):
+                    parse_probe(
+                        f"""PROBE FUNCTIONAL
+TARGET "secret headline"
+MUST "independent functional anchor"
+{clause} "{value}"
+LIMIT 3
+"""
+                    )
+
     def test_literal_probe_keeps_exact_anchor_instruction(self) -> None:
         probe = parse_probe(
             """PROBE LITERAL
