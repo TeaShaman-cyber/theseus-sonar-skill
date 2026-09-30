@@ -164,6 +164,7 @@ class NavigationBoundaryPropertyTest(unittest.TestCase):
                         "mode": "LITERAL",
                         "evidence": "STRONG",
                         "provenance": "RETRIEVED_HISTORY",
+                        "correlation_id": "context-group-history",
                         "source": SOURCE,
                     }
                 )
