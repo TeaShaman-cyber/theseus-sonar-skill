@@ -18,6 +18,7 @@ REQUIRED = (
     "tools/research/wolfram-witness",
     "tests/test_wolfram_witness.py",
     "tests/test_resolution_boundary_properties.py",
+    "tests/test_navigation_boundary_properties.py",
     "tools/dev/check",
     "scripts/verify_repo.py",
     "tests/test_repo_contract.py",

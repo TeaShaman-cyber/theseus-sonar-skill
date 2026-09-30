@@ -42,6 +42,9 @@ class RepoContractTest(unittest.TestCase):
         self.assertTrue(
             (ROOT / "tests/test_resolution_boundary_properties.py").is_file()
         )
+        self.assertTrue(
+            (ROOT / "tests/test_navigation_boundary_properties.py").is_file()
+        )
 
     def test_readme_preserves_retrieval_boundary(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8")

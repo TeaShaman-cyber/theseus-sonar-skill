@@ -67,6 +67,8 @@ class ResolutionReceipt:
 
 
 _DISCRIMINATING_MODES = frozenset({ProbeMode.FUNCTIONAL, ProbeMode.RELATIONAL})
+_NAVIGATION_SOURCE = "personal_context.search"
+_NAVIGATION_KEYS = frozenset({"mode", "evidence", "source"})
 _RESOLUTION_KEYS = frozenset(
     {
         "authority",
@@ -75,6 +77,53 @@ _RESOLUTION_KEYS = frozenset(
         "readback_verified",
     }
 )
+
+
+def _validate_navigation_receipt(receipt: Receipt) -> None:
+    if not isinstance(receipt, Receipt):
+        raise ValueError("navigation receipt must be a Receipt")
+    if not isinstance(receipt.mode, ProbeMode):
+        raise ValueError("navigation mode must be a ProbeMode")
+    if not isinstance(receipt.evidence, Evidence):
+        raise ValueError("navigation evidence must be an Evidence")
+    if type(receipt.source) is not str or receipt.source != _NAVIGATION_SOURCE:
+        raise ValueError(
+            "navigation receipts must come from personal_context.search"
+        )
+
+
+def decode_navigation_receipt(raw: object) -> Receipt:
+    if type(raw) is not dict:
+        raise ValueError("navigation receipt must be a JSON object")
+
+    if set(raw) != _NAVIGATION_KEYS:
+        raise ValueError("navigation receipt keys must match the contract exactly")
+
+    mode_raw = raw["mode"]
+    if type(mode_raw) is not str:
+        raise ValueError("navigation mode must be a string enum value")
+    try:
+        mode = ProbeMode(mode_raw)
+    except ValueError as exc:
+        raise ValueError("navigation mode is not an allowed ProbeMode") from exc
+
+    evidence_raw = raw["evidence"]
+    if type(evidence_raw) is not str:
+        raise ValueError("navigation evidence must be a string enum value")
+    try:
+        evidence = Evidence(evidence_raw)
+    except ValueError as exc:
+        raise ValueError("navigation evidence is not an allowed Evidence") from exc
+
+    source_raw = raw["source"]
+    if type(source_raw) is not str or source_raw != _NAVIGATION_SOURCE:
+        raise ValueError(
+            "navigation source must be personal_context.search"
+        )
+
+    receipt = Receipt(mode=mode, evidence=evidence, source=source_raw)
+    _validate_navigation_receipt(receipt)
+    return receipt
 
 
 def _validate_resolution_receipt(receipt: ResolutionReceipt) -> None:
@@ -127,8 +176,8 @@ def decide_navigation(
     if remaining_budget < 0:
         raise ValueError("remaining_budget must be non-negative")
 
-    if any(receipt.source != "personal_context.search" for receipt in receipts):
-        raise ValueError("navigation receipts must come from personal_context.search")
+    for receipt in receipts:
+        _validate_navigation_receipt(receipt)
 
     evidence = {receipt.evidence for receipt in receipts}
 
