@@ -60,7 +60,7 @@ if [ -n "$sixth_survivor" ]; then
 fi
 set -e
 
-if [ "$export_code" -ne 0 ] || [ ! -f mutants/mutmut-cicd-stats.json ]; then
+if [ "$export_code" -ne 0 ] || [ "$results_code" -ne 0 ] || [ ! -f mutants/mutmut-cicd-stats.json ]; then
     python - <<'PY'
 import json, os
 from pathlib import Path
@@ -69,7 +69,7 @@ receipt={
     "status":"MUTATION_RUNTIME_FAILED",
     "source_sha":os.environ["SOURCE_SHA"],
     "engine":{"name":"mutmut","version":"3.8.0"},
-    "error":"mutmut CI stats export failed or receipt was missing",
+    "error":"mutmut CI stats/results extraction failed or receipt was missing",
 }
 Path(os.environ["RECEIPT"]).write_text(json.dumps(receipt,indent=2,sort_keys=True)+"\n")
 PY
