@@ -55,6 +55,40 @@ Do not copy Superpowers' broad "1% chance means invoke" rule. Sonar has explicit
 
 Never claim AUTO_TRIGGER from the contents of this file alone. Prove it with clean-session positive cases plus adjacent negative controls on the target host. If the host cannot expose or auto-trigger skills, report that capability as host-limited rather than simulating it.
 
+## Probe slots
+
+The model-facing skill uses structural slots, not arithmetic counters.
+
+```text
+PROBE_SLOTS
+  LIGHT_LITERAL     OPTIONAL  UNUSED
+  LIGHT_FUNCTIONAL  PRIMARY   UNUSED
+  LIGHT_RELATIONAL  PRIMARY   UNUSED
+  FULL_EXTRA        ESCALATE  LOCKED
+```
+
+Slot transitions are monotonic:
+
+```text
+LIGHT_*   UNUSED -> USED
+FULL_EXTRA LOCKED -> UNUSED -> USED
+```
+
+A slot may be used at most once. Do not maintain or subtract a numeric probe counter in model text.
+
+Rules:
+
+- `LIGHT_LITERAL` may be skipped when no genuine exact historical anchor exists.
+- Use `LIGHT_FUNCTIONAL` as the primary discriminating probe.
+- Use `LIGHT_RELATIONAL` when another independent relation is needed.
+- Stop immediately when the evidence is sufficient for `LOCATED`; unused slots do not need to be consumed.
+- Unlock `FULL_EXTRA` only when LIGHT_SONAR is insufficient and a specific escalation mechanic is justified.
+- `FULL_EXTRA` permits exactly one additional probe using one selected FULL_SONAR mechanic.
+- If the next required slot is already USED, or no eligible UNUSED slot remains, terminate as `UNKNOWN`.
+- Transport/provider failure terminates as `DEGRADED`.
+
+When a deterministic helper is available, it may represent the same finite control with an integer or enum internally. The model-facing skill must not rely on free-form arithmetic. Wolfram or another external verifier may check invariants, but is not required as a runtime counter.
+
 ## LIGHT_SONAR control block
 
 Use the smallest probe family that can discriminate the target.
@@ -71,8 +105,8 @@ LOCATE only when:
   - no unresolved DRIFT or CONFLICT remains.
 
 Otherwise:
-  - budget remains -> issue one discriminating probe;
-  - budget exhausted -> UNKNOWN;
+  - use one eligible UNUSED slot for the next discriminating probe;
+  - no eligible slot remains -> UNKNOWN;
   - transport/provider unavailable -> DEGRADED.
 ```
 
@@ -259,7 +293,7 @@ EPISTEMIC_BOUNDARY   -> recover uncertainty, caveat, or explicit non-claim
 SOURCE               -> recover the likely authority route
 ```
 
-Stop when the next probe would only repeat the same attractor or fragment. Exhausted bounded probing terminates as UNKNOWN.
+Use exactly one selected FULL_SONAR mechanic through the single `FULL_EXTRA` slot. Stop when that slot is USED, when the next probe would only repeat the same attractor or fragment, or when no eligible slot remains. Terminate as UNKNOWN rather than opening another probe.
 
 ## Evaluation trace
 
@@ -268,6 +302,7 @@ For tests, debugging, or explicit requests for a Sonar trace, emit a compact rec
 ```text
 SONAR_TRACE v0
 STATE <UNLOCATED|LOCATED|ROUTED|RESOLVED|VERIFIED|DEGRADED|UNKNOWN>
+SLOT <LIGHT_LITERAL|LIGHT_FUNCTIONAL|LIGHT_RELATIONAL|FULL_EXTRA> <UNUSED|USED|LOCKED>
 PROBE <MODE> <EVIDENCE> <PROVENANCE>
 PROBE <MODE> <EVIDENCE> <PROVENANCE>
 AUTHORITY <SESSION_SEARCH|GITHUB|MEMORY_PROVIDER|FILES|OTHER|UNKNOWN>
