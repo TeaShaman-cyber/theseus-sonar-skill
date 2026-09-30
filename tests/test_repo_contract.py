@@ -66,6 +66,21 @@ class RepoContractTest(unittest.TestCase):
         self.assertIn("DO_NOT_TRIGGER when", skill)
         self.assertIn("DISCOVERY != AUTO_TRIGGER", skill)
 
+    def test_sonar_skill_uses_structural_probe_slots_not_llm_arithmetic(self) -> None:
+        skill = (ROOT / ".agents/skills/sonar/SKILL.md").read_text(encoding="utf-8")
+
+        self.assertIn("## Probe slots", skill)
+        self.assertIn("PROBE_SLOTS", skill)
+        self.assertIn("LIGHT_LITERAL", skill)
+        self.assertIn("LIGHT_FUNCTIONAL", skill)
+        self.assertIn("LIGHT_RELATIONAL", skill)
+        self.assertIn("FULL_EXTRA", skill)
+        self.assertIn("UNUSED -> USED", skill)
+        self.assertIn("LOCKED -> UNUSED -> USED", skill)
+        self.assertNotIn("budget remains", skill)
+        self.assertNotIn("budget exhausted", skill)
+        self.assertNotIn("decrement", skill.lower())
+
     def test_readme_preserves_retrieval_boundary(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("search miss != historical absence", readme)
