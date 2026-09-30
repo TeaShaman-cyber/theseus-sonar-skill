@@ -40,3 +40,15 @@ It verifies decision totality, LOCATED safety invariants, budget termination, an
 reachability for the personal_context.search navigation stage. LOCATED is not
 authority resolution or verification. It does not verify PCA retrieval quality or model-side receipt
 classification.
+
+## Targeted mutation witness
+
+The decision-core mutation lane is change-targeted heavy QA, not part of
+`tools/dev/check`. It mutates only `scripts/sonar_decision.py` and runs only
+the deterministic decision regression tests. Property/Hypothesis suites are
+deliberately excluded from the mutation loop.
+
+A surviving mutant is a classification lead, not score debt. Treat the receipt
+as evidence bound to the exact source SHA and classify useful survivors as
+REAL_TEST_GAP, EQUIVALENT, DIAGNOSTIC_ONLY, or IRRELEVANT before deciding on
+any regression or follow-up.
