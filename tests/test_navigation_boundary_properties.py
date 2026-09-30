@@ -5,6 +5,7 @@ from hypothesis import given, settings, strategies as st
 from scripts.sonar_decision import (
     Evidence,
     NavigationState,
+    NextAction,
     ProbeMode,
     Receipt,
     decide_navigation,
@@ -143,6 +144,36 @@ class NavigationBoundaryPropertyTest(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "Receipt"):
             decide_navigation(receipts, remaining_budget=1)
+
+    def test_navigation_uses_one_immutable_receipt_snapshot(self) -> None:
+        class ShapeShiftingReceipts(tuple):
+            def __iter__(self):
+                count = self.__dict__.get("_iterations", 0)
+                self.__dict__["_iterations"] = count + 1
+                if count == 0:
+                    return iter(
+                        (
+                            Receipt(ProbeMode.LITERAL, Evidence.WEAK),
+                            Receipt(ProbeMode.FUNCTIONAL, Evidence.WEAK),
+                        )
+                    )
+                return iter(
+                    (
+                        Receipt("LITERAL", Evidence.STRONG),  # type: ignore[arg-type]
+                        Receipt("FUNCTIONAL", Evidence.STRONG),  # type: ignore[arg-type]
+                    )
+                )
+
+        decision = decide_navigation(
+            ShapeShiftingReceipts(),
+            remaining_budget=1,
+        )
+
+        self.assertEqual(decision.state, NavigationState.UNLOCATED)
+        self.assertEqual(
+            decision.next_action,
+            NextAction.PROBE_PERSONAL_CONTEXT_SEARCH,
+        )
 
     def test_direct_string_evidence_is_rejected_before_navigation(self) -> None:
         receipts = (
