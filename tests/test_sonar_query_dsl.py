@@ -39,6 +39,22 @@ LIMIT 5
         self.assertIn("at most 5", rendered)
         self.assertIn("process or function", rendered)
 
+    def test_must_not_remains_operator_side_post_retrieval_metadata(self) -> None:
+        probe = parse_probe(
+            """PROBE FUNCTIONAL
+TARGET "known target"
+MUST "independent functional anchor"
+MUST_NOT "dominant distractor"
+LIMIT 3
+"""
+        )
+
+        rendered = render_personal_context_query(probe)
+
+        self.assertEqual(probe.must_not, ("dominant distractor",))
+        self.assertNotIn("dominant distractor", rendered)
+        self.assertNotIn("MUST_NOT", rendered)
+
     def test_target_is_operator_metadata_not_retrieval_text(self) -> None:
         probe = parse_probe(
             """PROBE RELATIONAL

@@ -88,6 +88,14 @@ class RepoContractTest(unittest.TestCase):
         self.assertIn("GROUP <correlation_id>", skill)
         self.assertIn("at least two distinct correlation groups", skill)
 
+    def test_sonar_skill_must_not_is_post_retrieval_exclusion_control(self) -> None:
+        skill = (ROOT / ".agents/skills/sonar/SKILL.md").read_text(encoding="utf-8")
+
+        self.assertIn("MUST_NOT is post-retrieval exclusion metadata", skill)
+        self.assertIn("Never render MUST_NOT text into personal_context.search", skill)
+        self.assertIn("excluded group does not produce a Receipt", skill)
+        self.assertIn("EXCLUDE GROUP <correlation_id> REASON MUST_NOT_MATCH", skill)
+
     def test_readme_preserves_retrieval_boundary(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("search miss != historical absence", readme)

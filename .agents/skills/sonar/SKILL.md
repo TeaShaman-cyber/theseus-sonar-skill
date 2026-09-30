@@ -139,7 +139,7 @@ Rules:
 - Use at most two clauses of each repeated kind.
 - Keep clause order canonical: TARGET, MUST, SHOULD, MUST_NOT, TIME, LIMIT.
 - Default `LIMIT` is 5; keep it small.
-- `MUST_NOT` is routing control, never positive evidence. Its text can itself become an attractor.
+- MUST_NOT is post-retrieval exclusion metadata, never positive evidence. Never render MUST_NOT text into personal_context.search.
 - Keep probe families independent. Do not pack every known anchor into one query.
 
 ### Probe mechanics
@@ -159,6 +159,21 @@ Search by distinctive relationships: actor -> object, problem -> workaround, iss
 **SEMANTIC**
 
 Use meaning-based paraphrase to recover a broader semantic region. Treat a broad region hit as candidate evidence until discriminated.
+
+### MUST_NOT exclusion mechanic
+
+MUST_NOT is post-retrieval exclusion metadata. Never render MUST_NOT text into personal_context.search.
+
+For each retrieved correlation group:
+
+1. Compare the returned group against the operator-side MUST_NOT distractor(s).
+2. If the group matches a known distractor, mark that group excluded before provenance admission.
+3. An excluded group does not produce a Receipt, does not contribute STRONG/WEAK/DRIFT/CONFLICT evidence, and cannot participate in LOCATED.
+4. Record only the group identity in the evaluation trace; do not repeat the distractor text into a corrective query.
+5. If useful evidence remains insufficient and an eligible UNUSED slot exists, issue one corrective FUNCTIONAL or RELATIONAL probe that omits both the TARGET attractor and the excluded distractor wording.
+6. If no eligible UNUSED slot remains, terminate as UNKNOWN.
+
+The MUST_NOT clause itself is QUERY_CONSTRAINT metadata, never historical evidence.
 
 ## Proposition provenance admission
 
@@ -225,10 +240,11 @@ When a strong attractor keeps dominating:
 1. Do not repeat the same query with cosmetic wording changes.
 2. Add a FUNCTIONAL or RELATIONAL probe that omits the attractor.
 3. If a known distractor is contaminating results, place it in `MUST_NOT`.
-4. Treat the negative instruction as QUERY_CONSTRAINT, never evidence.
-5. If the recovered episode has a later correction, probe the correction separately.
-6. Preserve both the original claim and correction until authority resolution.
-7. If evidence remains conflicting, return UNKNOWN rather than averaging it into confidence.
+4. Apply MUST_NOT only after retrieval: exclude matching correlation groups before Receipt creation.
+5. If the excluded group consumed the useful result and an eligible slot remains, use one corrective FUNCTIONAL or RELATIONAL probe without reusing the distractor wording.
+6. If the recovered episode has a later correction, probe the correction separately.
+7. Preserve both the original claim and correction until authority resolution.
+8. If evidence remains conflicting, return UNKNOWN rather than averaging it into confidence.
 
 ## Temporal mechanic
 
@@ -306,6 +322,7 @@ STATE <UNLOCATED|LOCATED|ROUTED|RESOLVED|VERIFIED|DEGRADED|UNKNOWN>
 SLOT <LIGHT_LITERAL|LIGHT_FUNCTIONAL|LIGHT_RELATIONAL|FULL_EXTRA> <UNUSED|USED|LOCKED>
 PROBE <MODE> <EVIDENCE> <PROVENANCE> GROUP <correlation_id>
 PROBE <MODE> <EVIDENCE> <PROVENANCE> GROUP <correlation_id>
+EXCLUDE GROUP <correlation_id> REASON MUST_NOT_MATCH
 AUTHORITY <SESSION_SEARCH|GITHUB|MEMORY_PROVIDER|FILES|OTHER|UNKNOWN>
 NEXT <PROBE|RESOLVE_AUTHORITY|VERIFY_READBACK|NONE>
 BOUNDARY "<short reason>"
