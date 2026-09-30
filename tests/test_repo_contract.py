@@ -46,6 +46,26 @@ class RepoContractTest(unittest.TestCase):
             (ROOT / "tests/test_navigation_boundary_properties.py").is_file()
         )
 
+    def test_sonar_skill_has_narrow_discovery_trigger_contract(self) -> None:
+        skill = (ROOT / ".agents/skills/sonar/SKILL.md").read_text(encoding="utf-8")
+        parts = skill.split("---", 2)
+        self.assertEqual(len(parts), 3)
+
+        frontmatter = parts[1]
+        description = next(
+            line.removeprefix("description: ").strip()
+            for line in frontmatter.splitlines()
+            if line.startswith("description: ")
+        )
+
+        self.assertTrue(description.startswith("Use when "))
+        self.assertNotIn("personal_context.search", description)
+        self.assertNotIn("provenance", description.lower())
+        self.assertIn("## Trigger contract", skill)
+        self.assertIn("TRIGGER when", skill)
+        self.assertIn("DO_NOT_TRIGGER when", skill)
+        self.assertIn("DISCOVERY != AUTO_TRIGGER", skill)
+
     def test_readme_preserves_retrieval_boundary(self) -> None:
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("search miss != historical absence", readme)
