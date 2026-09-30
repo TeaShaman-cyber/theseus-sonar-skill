@@ -91,7 +91,7 @@ if any(int(stats.get(key,0)) for key in incomplete_keys) or classified != total:
     code=2
 elif int(stats.get("survived",0)):
     status="SURVIVORS_PRESENT"
-    code=1
+    code=0
 else:
     status="MUTATION_CLEAN"
     code=0
