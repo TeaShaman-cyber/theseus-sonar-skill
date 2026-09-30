@@ -118,6 +118,32 @@ class NavigationBoundaryPropertyTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "ProbeMode"):
             decide_navigation(receipts, remaining_budget=1)
 
+    def test_receipt_subclass_cannot_change_values_after_validation(self) -> None:
+        class ShapeShiftingReceipt(Receipt):
+            def __getattribute__(self, name):
+                if name in {"mode", "evidence"}:
+                    count_name = f"_{name}_reads"
+                    count = object.__getattribute__(self, "__dict__").get(
+                        count_name,
+                        0,
+                    )
+                    object.__getattribute__(self, "__dict__")[count_name] = (
+                        count + 1
+                    )
+                    value = object.__getattribute__(self, name)
+                    if count == 0:
+                        return value
+                    return value.value
+                return object.__getattribute__(self, name)
+
+        receipts = (
+            ShapeShiftingReceipt(ProbeMode.LITERAL, Evidence.STRONG),
+            ShapeShiftingReceipt(ProbeMode.FUNCTIONAL, Evidence.STRONG),
+        )
+
+        with self.assertRaisesRegex(ValueError, "Receipt"):
+            decide_navigation(receipts, remaining_budget=1)
+
     def test_direct_string_evidence_is_rejected_before_navigation(self) -> None:
         receipts = (
             Receipt(ProbeMode.LITERAL, "STRONG"),  # type: ignore[arg-type]
