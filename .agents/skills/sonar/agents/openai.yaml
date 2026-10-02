@@ -1,0 +1,6 @@
+interface:
+  display_name: "Sonar"
+  short_description: "Recover ambiguous history"
+  default_prompt: "Recover the missing or ambiguous historical context this task depends on."
+policy:
+  allow_implicit_invocation: true

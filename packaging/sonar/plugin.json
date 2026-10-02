@@ -1,0 +1,28 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "sonar",
+  "version": "0.1.1",
+  "description": "Bounded historical-context navigation for ambiguous prior chats and project work.",
+  "author": {
+    "name": "TeaShaman-cyber"
+  },
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Sonar",
+        "shortDescription": "Recover prior context",
+        "longDescription": "Recover ambiguous historical context with bounded probes, provenance checks, correlation deduplication, and authority handoff.",
+        "developerName": "TeaShaman-cyber",
+        "category": "Productivity",
+        "capabilities": [
+          "Interactive"
+        ],
+        "defaultPrompt": [
+          "Recover the missing context from an earlier chat.",
+          "Find the earlier decision this task depends on.",
+          "Resolve which prior episode I am referring to."
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+start: probe
+probe: probe_line target_line positive_block must_not_block? time_line? limit_line?
+positive_block: must_line must_line? should_line? should_line?
+              | should_line should_line?
+must_not_block: must_not_line must_not_line?
+
+probe_line: "PROBE" SP MODE NL
+target_line: "TARGET" SP QUOTED NL
+must_line: "MUST" SP QUOTED NL
+should_line: "SHOULD" SP QUOTED NL
+must_not_line: "MUST_NOT" SP QUOTED NL
+time_line: "TIME" SP QUOTED NL
+limit_line: "LIMIT" SP LIMIT_VALUE NL
+
+MODE: "LITERAL" | "SEMANTIC" | "FUNCTIONAL" | "RELATIONAL"
+QUOTED: /"[^"\r\n]{1,240}"/
+LIMIT_VALUE: /10|[1-9]/
+SP: " "
+NL: /\r?\n/

@@ -13,9 +13,10 @@ Issue #1 currently covers the initial Sonar skill prototype.
 
 ## Development flow
 
-Create a bounded branch, make the change, then run:
+Create a bounded branch, install the pinned development-only dependencies, then run:
 
 ```bash
+python3 -m pip install -r requirements-dev.txt
 tools/dev/check
 ```
 

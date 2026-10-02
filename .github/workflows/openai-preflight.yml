@@ -1,0 +1,41 @@
+name: OpenAI plugin preflight
+
+on:
+  pull_request:
+    paths:
+      - .agents/skills/sonar/**
+      - packaging/sonar/**
+      - tools/package-plugin
+      - tools/qa/openai-preflight
+      - QA/openai-preflight.lock.json
+      - third_party/openai/**
+      - third_party/agent-plugins/**
+      - requirements/openai-preflight.txt
+      - tests/test_openai_preflight_ci.py
+      - .github/workflows/openai-preflight.yml
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  openai-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install OpenAI preflight requirements
+        run: python -m pip install -r requirements/openai-preflight.txt
+
+      - name: Run official OpenAI preflight lane
+        run: tools/qa/openai-preflight

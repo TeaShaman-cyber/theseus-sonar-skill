@@ -1,0 +1,24 @@
+name: Mutation test — Sonar decision boundary
+
+on:
+  pull_request:
+    paths:
+      - scripts/sonar_decision.py
+      - tests/test_sonar_decision.py
+      - tools/ci/mutation-decision-test
+      - tools/ci/mutation-decision.cfg
+      - requirements/ci-mutation.txt
+      - tests/test_mutation_decision_ci.py
+      - .github/workflows/mutation-decision-test.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mutation-decision-test:
+    uses: TeaShaman-cyber/marcopolo-cookbook/.github/workflows/reusable-mutation-test.yml@0fa76f7aa1ccad2fb175591c9497157d8c60e481
+    with:
+      python_version: "3.11"
+      requirements_file: requirements/ci-mutation.txt
+      mutation_endpoint: tools/ci/mutation-decision-test
